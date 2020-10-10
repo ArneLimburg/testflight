@@ -16,11 +16,12 @@
 package de.openknowledge.extensions.flyway;
 
 import java.util.List;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import de.openknowledge.extensions.User;
@@ -30,8 +31,8 @@ public class FlywayExtensionTest {
 
   private static EntityManager entityManager;
 
-  @BeforeAll
-  static void setUp() {
+  @BeforeEach
+  void setUp() {
     EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit");
     entityManager = entityManagerFactory.createEntityManager();
 
