@@ -15,6 +15,8 @@
  */
 package de.openknowledge.extensions.flyway;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -48,6 +50,6 @@ public class FlywayExtensionTest {
     List<User> users = entityManager.createQuery("Select u from User u", User.class).getResultList();
 
     //assert
-
+    assertThat(users).hasSize(2);
   }
 }
