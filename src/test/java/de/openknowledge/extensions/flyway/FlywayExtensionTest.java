@@ -28,7 +28,7 @@ import javax.persistence.Persistence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import de.openknowledge.extensions.User;
+import de.openknowledge.extensions.Customer;
 
 @Flyway
 public class FlywayExtensionTest {
@@ -44,8 +44,8 @@ public class FlywayExtensionTest {
     EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
     entityManager = entityManagerFactory.createEntityManager();
 
-    User peter = new User("Peter", "peter@mail.de");
-    User hans = new User("Hans", "hans@mail.de");
+    Customer peter = new Customer("Peter", "peter@mail.de");
+    Customer hans = new Customer("Hans", "hans@mail.de");
 
     entityManager.getTransaction().begin();
     entityManager.persist(peter);
@@ -55,7 +55,7 @@ public class FlywayExtensionTest {
 
   @Test
   void initialTest() {
-    List<User> users = entityManager.createQuery("Select u from User u", User.class).getResultList();
+    List<Customer> users = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
     //assert
     assertThat(users).hasSize(2);
