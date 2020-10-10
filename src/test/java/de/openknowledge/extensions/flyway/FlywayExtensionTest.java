@@ -41,7 +41,7 @@ public class FlywayExtensionTest {
     properties.put("javax.persistence.jdbc.url", System.getProperty("jdbc.url"));
     properties.put("javax.persistence.jdbc.user", System.getProperty("jdbc.username"));
     properties.put("javax.persistence.jdbc.password", System.getProperty("jdbc.password"));
-    EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit");
+    EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
     entityManager = entityManagerFactory.createEntityManager();
 
     User peter = new User("Peter", "peter@mail.de");
