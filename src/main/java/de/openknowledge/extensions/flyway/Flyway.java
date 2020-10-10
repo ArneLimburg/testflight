@@ -28,7 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Target({ANNOTATION_TYPE, TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Flyway {
-  DatabaseType database();
+  DatabaseType database() default DatabaseType.POSTGRESQL;
   String dockerImage() default "";
   String[] testDataScripts() default {};
 
