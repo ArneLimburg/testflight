@@ -49,33 +49,32 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
   private static final String STORE_IMAGE = "image";
-  private static final String CURRENT_MIGRATION_TARGET = "currentMigrationTarget";
   private static final String STORE_CONTAINER = "container";
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
-    long startTime = System.currentTimeMillis();
-
-    getExtensionStore(context).put(CURRENT_MIGRATION_TARGET, getCurrentMigrationTarget());
+    String currentMigrationTarget = getCurrentMigrationTarget();
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
-    container.start();
-    System.setProperty(JDBC_URL, container.getJdbcUrl());
-    System.setProperty(JDBC_USERNAME, container.getUsername());
-    System.setProperty(JDBC_PASSWORD, container.getPassword());
+    TaggableContainer taggableContainer = (TaggableContainer)container;
+    if (!taggableContainer.containsTag(currentMigrationTarget)) {
+      container.start();
+      System.setProperty(JDBC_URL, container.getJdbcUrl());
+      System.setProperty(JDBC_USERNAME, container.getUsername());
+      System.setProperty(JDBC_PASSWORD, container.getPassword());
 
-    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
-    flyway.migrate();
-    String migrationTarget = (String)getExtensionStore(context).get(CURRENT_MIGRATION_TARGET);
-    String imageName = ((TaggableContainer)container).tag(migrationTarget);
-    getExtensionStore(context).put(STORE_IMAGE, imageName);
-    container.stop();
-    System.err.println("Initialization in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
+      org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+        .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
+      flyway.migrate();
+      taggableContainer.tag(currentMigrationTarget);
+      getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
+      container.stop();
+    } else {
+      getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
+    }
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    long startTime = System.currentTimeMillis();
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.FAST);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
@@ -83,7 +82,6 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     System.setProperty(JDBC_PASSWORD, container.getPassword());
 
     getMethodStore(context).put(STORE_CONTAINER, container);
-    System.err.println("Startup in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
   }
 
   @Override

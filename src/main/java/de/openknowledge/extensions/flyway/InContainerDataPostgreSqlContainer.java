@@ -15,11 +15,14 @@
  */
 package de.openknowledge.extensions.flyway;
 
+import java.util.Arrays;
+
 import org.testcontainers.containers.PostgreSQLContainer;
 
 public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InContainerDataPostgreSqlContainer>
   implements TaggableContainer {
 
+  private static final String IMAGE_NAME = "postgres";
   public InContainerDataPostgreSqlContainer() {
     super();
     initCommand();
@@ -31,11 +34,28 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
   }
 
   private void initCommand() {
-//    this.setCommand("sh", "-c", "rm -rf /var/lib/postgresql/data ; mkdir /var/lib/postgresql/data-local ; ln -s /var/lib/postgresql/data-local /var/lib/postgresql/data ; postgres");
     this.withEnv("PGDATA", "/var/lib/postgresql/data-local");
   }
 
-  public String tag(String hash) {
-    return getDockerClient().commitCmd(getContainerId()).withTag(hash).exec();
+  public void tag(String hash) {
+    String commitedImage = getDockerClient().commitCmd(getContainerId()).exec();
+    getDockerClient().tagImageCmd(commitedImage, IMAGE_NAME, hash).exec();
+  }
+
+  public boolean containsTag(String tag) {
+    String repoTag = getImageName(tag);
+    return getDockerClient()
+      .listImagesCmd()
+      .exec()
+      .stream()
+      .flatMap(image -> Arrays.stream(image.getRepoTags()))
+      .filter(t -> t.equals(repoTag))
+      .findAny()
+      .isPresent();
+  }
+
+  @Override
+  public String getImageName(String tag) {
+    return IMAGE_NAME + ":" + tag;
   }
 }

@@ -17,5 +17,7 @@ package de.openknowledge.extensions.flyway;
 
 public interface TaggableContainer {
 
-  String tag(String hash);
+  String getImageName(String tag);
+  boolean containsTag(String tag);
+  void tag(String tag);
 }
