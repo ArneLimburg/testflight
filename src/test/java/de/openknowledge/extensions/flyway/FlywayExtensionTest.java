@@ -16,7 +16,6 @@
 package de.openknowledge.extensions.flyway;
 
 import java.util.List;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -29,10 +28,10 @@ import de.openknowledge.extensions.User;
 @Flyway
 public class FlywayExtensionTest {
 
-  private EntityManager entityManager;
+  private static EntityManager entityManager;
 
   @BeforeAll
-  void setUp() {
+  static void setUp() {
     EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit");
     entityManager = entityManagerFactory.createEntityManager();
 
