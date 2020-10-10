@@ -15,6 +15,8 @@
  */
 package de.openknowledge.extensions.flyway;
 
+import static java.util.Optional.ofNullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -27,19 +29,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import static java.util.Optional.ofNullable;
 
-import java.io.File;
-import java.util.Optional;
-
-import org.apache.commons.io.FileUtils;
 import org.flywaydb.core.api.Location;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -52,17 +48,15 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private static final String JDBC_URL = "jdbc.url";
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
-  private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
-  private static final String POSTGRES_HOST_DIRECTORY = "target/postgres";
   private static final String STORE_IMAGE = "image";
+  private static final String CURRENT_MIGRATION_TARGET = "currentMigrationTarget";
   private static final String STORE_CONTAINER = "container";
-  private String currentMigrationTarget;
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
     long startTime = System.currentTimeMillis();
 
-    currentMigrationTarget = getCurrentMigrationTarget();
+    getExtensionStore(context).put(CURRENT_MIGRATION_TARGET, getCurrentMigrationTarget());
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
@@ -72,7 +66,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
       .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
     flyway.migrate();
-    String imageName = ((TaggableContainer)container).tag(currentMigrationTarget);
+    String migrationTarget = (String)getExtensionStore(context).get(CURRENT_MIGRATION_TARGET);
+    String imageName = ((TaggableContainer)container).tag(migrationTarget);
     getExtensionStore(context).put(STORE_IMAGE, imageName);
     container.stop();
     System.err.println("Initialization in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
