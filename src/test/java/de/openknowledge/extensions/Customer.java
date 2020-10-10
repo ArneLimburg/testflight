@@ -34,6 +34,10 @@ public class Customer {
   @Column
   String email;
 
+  public Customer() {
+    // for jpa
+  }
+
   public Customer(String userName, String email) {
     this.userName = userName;
     this.email = email;
