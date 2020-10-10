@@ -42,5 +42,9 @@ public class Customer {
     this.userName = userName;
     this.email = email;
   }
+
+  public String getUserName() {
+    return userName;
+  }
 }
 

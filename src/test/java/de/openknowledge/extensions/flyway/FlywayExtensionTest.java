@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -44,22 +43,36 @@ public class FlywayExtensionTest {
     EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
     entityManager = entityManagerFactory.createEntityManager();
 
-    Customer peter = new Customer("Peter", "peter@mail.de");
-    Customer hans = new Customer("Hans", "hans@mail.de");
-
-    entityManager.getTransaction().begin();
-    entityManager.persist(peter);
-    entityManager.persist(hans);
-    entityManager.getTransaction().commit();
     Persistence.generateSchema("test-unit", properties);
-
   }
 
   @Test
   void initialTest() {
-    List<Customer> users = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
+    Customer hans = new Customer("Hans", "hans@mail.de");
 
-    //assert
-    assertThat(users).hasSize(2);
+    entityManager.getTransaction().begin();
+    entityManager.persist(hans);
+    entityManager.getTransaction().commit();
+
+    List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
+
+    assertThat(customers).hasSize(2);
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
+  }
+
+  @Test
+  void secondTest() {
+    Customer peter = new Customer("Peter", "peter@mail.de");
+
+    entityManager.getTransaction().begin();
+    entityManager.persist(peter);
+    entityManager.getTransaction().commit();
+
+    List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
+
+    assertThat(customers).hasSize(2);
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
   }
 }
