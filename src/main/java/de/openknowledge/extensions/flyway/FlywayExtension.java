@@ -15,16 +15,24 @@
  */
 package de.openknowledge.extensions.flyway;
 
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 public class FlywayExtension implements BeforeEachCallback {
 
+  private static final String POSTGRES_HOST_DIRECTORY = "/target/postgres";
+
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
     PostgreSQLContainer<?> container = new PostgreSQLContainer();
+    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, "/var/lib/postgresql/data", BindMode.READ_WRITE);
     container.start();
+    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File("/target/postgres-base"));
     System.setProperty("jdbc.url", container.getJdbcUrl());
     System.setProperty("jdbc.username", container.getUsername());
     System.setProperty("jdbc.password", container.getPassword());
