@@ -52,6 +52,11 @@
         <artifactId>postgresql</artifactId>
         <version>42.2.17</version>
       </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>7.0.2</version>
+      </dependency>
 
     </dependencies>
   </dependencyManagement>
@@ -60,6 +65,10 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>

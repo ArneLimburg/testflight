@@ -28,5 +28,10 @@ public class FlywayExtension implements BeforeEachCallback {
     System.setProperty("jdbc.url", container.getJdbcUrl());
     System.setProperty("jdbc.username", container.getUsername());
     System.setProperty("jdbc.password", container.getPassword());
+
+    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+           .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
+           .load();
+    flyway.migrate();
   }
 }
