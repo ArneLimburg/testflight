@@ -15,6 +15,7 @@
  */
 package de.openknowledge.extensions.flyway;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
 
 import java.io.File;
@@ -31,6 +32,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.flywaydb.core.api.Location;
+import org.flywaydb.core.api.configuration.Configuration;
+import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
+import org.flywaydb.core.internal.jdbc.JdbcTemplate;
+import org.flywaydb.core.internal.parser.ParsingContext;
+import org.flywaydb.core.internal.resource.LoadableResource;
+import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
+import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -66,6 +74,23 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
         .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
       flyway.migrate();
       taggableContainer.tag(currentMigrationTarget);
+
+      Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
+      if (extension.isPresent()) {
+        String[] testDataScripts = extension.get().testDataScripts();
+
+        Configuration flywayConfiguration = flyway.getConfiguration();
+        ParsingContext parsingContext = new ParsingContext();
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
+        PostgreSQLParser postgreSQLParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
+
+        for (String testDataScript : testDataScripts) {
+          LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
+          SqlStatementIterator parse = postgreSQLParser.parse(loadableResource);
+          parse.forEachRemaining(p -> p.execute(jdbcTemplate));
+        }
+      }
+
       getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
       container.stop();
     } else {
