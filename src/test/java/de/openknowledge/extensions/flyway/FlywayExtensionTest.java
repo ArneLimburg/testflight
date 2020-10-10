@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import de.openknowledge.extensions.Customer;
 import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
-@Flyway(database = DatabaseType.POSTGRESQL)
+@Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
 public class FlywayExtensionTest {
 
   private EntityManager entityManager;
@@ -58,9 +58,11 @@ public class FlywayExtensionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
+    assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser"));// in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2"));// in second init script
     System.out.println("===== initialTest stop ======================================= ");
   }
 
@@ -75,9 +77,11 @@ public class FlywayExtensionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
+    assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser"));// in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2"));// in second init script
     System.out.println("===== secondTest stop ======================================= ");
   }
 }
