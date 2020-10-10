@@ -20,10 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,18 +37,31 @@ import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 @Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
 public class FlywayExtensionTest {
 
+  private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
 
-  @BeforeEach
-  void setUp() {
+  @BeforeAll
+  static void createEntityManagerFactory() {
     Map<String, String> properties = new HashMap<>();
     properties.put("javax.persistence.jdbc.url", System.getProperty("jdbc.url"));
     properties.put("javax.persistence.jdbc.user", System.getProperty("jdbc.username"));
     properties.put("javax.persistence.jdbc.password", System.getProperty("jdbc.password"));
-    EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
-    entityManager = entityManagerFactory.createEntityManager();
+    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
+  }
 
-    Persistence.generateSchema("test-unit", properties);
+  @AfterAll
+  static void closeEntityManagerFactory() {
+    entityManagerFactory.close();
+  }
+
+  @BeforeEach
+  void createEntityManager() {
+    entityManager = entityManagerFactory.createEntityManager();
+  }
+
+  @AfterEach
+  void closeEntityManager() {
+    entityManager.close();
   }
 
   @Test

@@ -44,6 +44,8 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
+import org.junit.jupiter.api.extension.ExtensionContext.Store;
+import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -56,25 +58,24 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private static final String JDBC_URL = "jdbc.url";
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
+  private static final String JDBC_PORT = "jdbc.port";
   private static final String STORE_IMAGE = "image";
   private static final String STORE_CONTAINER = "container";
+  private JdbcDatabaseContainer<?> container;
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
     String currentMigrationTarget = getCurrentMigrationTarget();
-    JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
+    container = createContainer(context, StartupType.SLOW);
+    Store store = getExtensionStore(context);
     TaggableContainer taggableContainer = (TaggableContainer)container;
-    if (!taggableContainer.containsTag(currentMigrationTarget)) {
+    if (!ofNullable(store.get(JDBC_URL)).isPresent() || !taggableContainer.containsTag(currentMigrationTarget)) {
       container.start();
-      System.setProperty(JDBC_URL, container.getJdbcUrl());
-      System.setProperty(JDBC_USERNAME, container.getUsername());
-      System.setProperty(JDBC_PASSWORD, container.getPassword());
 
       org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
         .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
       flyway.migrate();
       taggableContainer.tag(currentMigrationTarget);
-
       Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
       if (extension.isPresent()) {
         String[] testDataScripts = extension.get().testDataScripts();
@@ -92,19 +93,26 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
       }
 
       getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
-      container.stop();
+      Integer port = container.getMappedPort(5432);
+      store.put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
+      store.put(JDBC_URL, container.getJdbcUrl());
+      store.put(JDBC_USERNAME, container.getUsername());
+      store.put(JDBC_PASSWORD, container.getPassword());
+      store.put(JDBC_PORT, port);
     } else {
-      getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
+      store.put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
     }
+    System.setProperty(JDBC_URL, store.get(JDBC_URL, String.class));
+    System.setProperty(JDBC_USERNAME, store.get(JDBC_USERNAME, String.class));
+    System.setProperty(JDBC_PASSWORD, store.get(JDBC_PASSWORD, String.class));
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    JdbcDatabaseContainer<?> container = createContainer(context, StartupType.FAST);
-    container.start();
-    System.setProperty(JDBC_URL, container.getJdbcUrl());
-    System.setProperty(JDBC_USERNAME, container.getUsername());
-    System.setProperty(JDBC_PASSWORD, container.getPassword());
+    if (!container.isRunning()) {
+      container = createContainer(context, StartupType.FAST);
+      container.start();
+    }
 
     getMethodStore(context).put(STORE_CONTAINER, container);
   }
@@ -145,12 +153,19 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private JdbcDatabaseContainer<?> createContainer(ExtensionContext context, StartupType startup) {
     JdbcDatabaseContainer<?> container;
     Optional<Flyway> configuration = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(flyway -> flyway != null);
+    Integer port = getExtensionStore(context).get(JDBC_PORT, Integer.class);
     if (!configuration.isPresent()) {
-      container = new InContainerDataPostgreSqlContainer();
+      InContainerDataPostgreSqlContainer postgresqlContainer;
+      postgresqlContainer = new InContainerDataPostgreSqlContainer().withFixedExposedPort(port, 5432);
       if (startup == StartupType.FAST) {
-        container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
+        postgresqlContainer.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
       }
+      if (port != null) {
+        postgresqlContainer.withFixedExposedPort(port, 5432);
+      }
+      container = postgresqlContainer;
     } else {
+      InContainerDataPostgreSqlContainer postgresqlContainer;
       Flyway flywayConfiguration = configuration.get();
       switch (flywayConfiguration.database()) {
         case POSTGRESQL:
@@ -160,13 +175,17 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
           Optional<String> imageName = ofNullable((String)getExtensionStore(context).get(STORE_IMAGE));
           imageName = ofNullable(imageName.orElse(flywayConfiguration.dockerImage())).filter(image -> !image.isEmpty());
           if (imageName.isPresent()) {
-            container = new InContainerDataPostgreSqlContainer(imageName.get());
+            postgresqlContainer = new InContainerDataPostgreSqlContainer(imageName.get());
           } else {
-            container = new InContainerDataPostgreSqlContainer();
+            postgresqlContainer = new InContainerDataPostgreSqlContainer();
           }
           if (startup == StartupType.FAST) {
-            container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
+            postgresqlContainer.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
           }
+          if (port != null) {
+            postgresqlContainer.withFixedExposedPort(port, 5432);
+          }
+          container = postgresqlContainer;
           break;
         default:
           throw new IllegalStateException("Database type " + flywayConfiguration.database() + " is not supported");

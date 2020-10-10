@@ -18,6 +18,7 @@ package de.openknowledge.extensions.flyway;
 import java.util.List;
 import java.util.Objects;
 
+import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import com.github.dockerjava.api.model.Image;
@@ -61,5 +62,10 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
   @Override
   public String getImageName(String tag) {
     return IMAGE_NAME + ":" + tag;
+  }
+
+  public InContainerDataPostgreSqlContainer withFixedExposedPort(int hostPort, int containerPort) {
+    super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
+    return this;
   }
 }
