@@ -71,7 +71,6 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
       org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
         .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
       flyway.migrate();
-      taggableContainer.tag(currentMigrationTarget);
       Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
       if (extension.isPresent()) {
         String[] testDataScripts = extension.get().testDataScripts();
@@ -87,6 +86,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
           parse.forEachRemaining(p -> p.execute(jdbcTemplate));
         }
       }
+      taggableContainer.tag(currentMigrationTarget);
 
       getExtensionStore(context).put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
       store.put(STORE_IMAGE, taggableContainer.getImageName(currentMigrationTarget));
