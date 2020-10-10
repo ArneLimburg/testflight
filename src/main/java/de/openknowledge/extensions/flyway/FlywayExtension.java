@@ -25,5 +25,8 @@ public class FlywayExtension implements BeforeEachCallback {
   public void beforeEach(ExtensionContext context) throws Exception {
     PostgreSQLContainer<?> container = new PostgreSQLContainer();
     container.start();
+    System.setProperty("jdbc.url", container.getJdbcUrl());
+    System.setProperty("jdbc.username", container.getUsername());
+    System.setProperty("jdbc.password", container.getPassword());
   }
 }

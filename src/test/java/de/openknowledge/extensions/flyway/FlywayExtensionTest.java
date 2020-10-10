@@ -17,7 +17,9 @@ package de.openknowledge.extensions.flyway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -35,6 +37,10 @@ public class FlywayExtensionTest {
 
   @BeforeEach
   void setUp() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put("javax.persistence.jdbc.url", System.getProperty("jdbc.url"));
+    properties.put("javax.persistence.jdbc.user", System.getProperty("jdbc.username"));
+    properties.put("javax.persistence.jdbc.password", System.getProperty("jdbc.password"));
     EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("test-unit");
     entityManager = entityManagerFactory.createEntityManager();
 
