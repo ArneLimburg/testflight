@@ -72,7 +72,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
       .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
     flyway.migrate();
-    String imageName = ((TaggableContainer)container).tag("myHash");
+    String imageName = ((TaggableContainer)container).tag(currentMigrationTarget);
     getExtensionStore(context).put(STORE_IMAGE, imageName);
     container.stop();
     System.err.println("Initialization in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
