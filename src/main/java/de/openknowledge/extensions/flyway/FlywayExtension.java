@@ -32,6 +32,7 @@ import java.util.Optional;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
+  private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
   private static final String JDBC_URL = "jdbc.url";
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
@@ -42,7 +43,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
-    JdbcDatabaseContainer<?> container = createContainer(context);
+    JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
@@ -60,8 +61,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
     FileUtils.copyDirectory(new File(POSTGRES_BACKUP_DIRECTORY), new File(POSTGRES_HOST_DIRECTORY));
-    PostgreSQLContainer<?> container = new PostgreSQLContainer();
-    container.setWaitStrategy(Wait.forLogMessage(".*is ready.*", 1));
+    JdbcDatabaseContainer<?> container = createContainer(context, StartupType.FAST);
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
@@ -81,22 +81,38 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
-  private JdbcDatabaseContainer<?> createContainer(ExtensionContext context) {
+  private JdbcDatabaseContainer<?> createContainer(ExtensionContext context, StartupType startup) {
     JdbcDatabaseContainer<?> container;
     Optional<Flyway> configuration = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(flyway -> flyway != null);
     if (!configuration.isPresent()) {
       container = new PostgreSQLContainer();
+      if (startup == StartupType.FAST) {
+        container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
+      }
     } else {
       Flyway flywayConfiguration = configuration.get();
-      if (flywayConfiguration.database() != DatabaseType.POSTGRESQL) {
-        throw new IllegalStateException("Currently only PostgreSQL is supported");
-      }
-      if (flywayConfiguration.dockerImage().length() > 0) {
-        container = new PostgreSQLContainer(flywayConfiguration.dockerImage());
-      } else {
-        container = new PostgreSQLContainer();
+      switch (flywayConfiguration.database()) {
+        case POSTGRESQL:
+          if (flywayConfiguration.database() != DatabaseType.POSTGRESQL) {
+            throw new IllegalStateException("Currently only PostgreSQL is supported");
+          }
+          if (flywayConfiguration.dockerImage().length() > 0) {
+            container = new PostgreSQLContainer(flywayConfiguration.dockerImage());
+          } else {
+            container = new PostgreSQLContainer();
+          }
+          if (startup == StartupType.FAST) {
+            container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
+          }
+          break;
+        default:
+          throw new IllegalStateException("Database type " + flywayConfiguration.database() + " is not supported");
       }
     }
     return container;
+  }
+
+  private enum StartupType {
+    SLOW, FAST;
   }
 }
