@@ -30,8 +30,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
   private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
-  private static final String POSTGRES_HOST_DIRECTORY = "/target/postgres";
-  private static final String POSTGRES_BACKUP_DIRECTORY = "/target/postgres-base";
+  private static final String POSTGRES_HOST_DIRECTORY = "target/postgres";
+  private static final String POSTGRES_BACKUP_DIRECTORY = "target/postgres-base";
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
@@ -45,9 +45,9 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
     org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
       .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
     flyway.migrate();
+    container.stop();
 
     FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File(POSTGRES_BACKUP_DIRECTORY));
-    container.stop();
   }
 
   @Override
