@@ -51,6 +51,8 @@ public class FlywayExtensionTest {
     entityManager.persist(peter);
     entityManager.persist(hans);
     entityManager.getTransaction().commit();
+    Persistence.generateSchema("test-unit", properties);
+
   }
 
   @Test
