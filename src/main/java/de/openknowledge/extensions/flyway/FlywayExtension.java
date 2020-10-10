@@ -106,7 +106,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     }
 
     Optional<Path> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
-    String latestMigrationFileName = latestMigration.get().getFileName().toString().split("__")[0];
+    String latestMigrationFileName = latestMigration.get().getFileName().toString().split("__")[0].replace(".", "_");
 
     return latestMigrationFileName;
   }
