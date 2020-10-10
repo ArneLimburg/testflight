@@ -18,28 +18,46 @@ package de.openknowledge.extensions.flyway;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-public class FlywayExtension implements BeforeEachCallback {
+public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
 
+  private static final String JDBC_URL = "jdbc.url";
+  private static final String JDBC_USERNAME = "jdbc.username";
+  private static final String JDBC_PASSWORD = "jdbc.password";
+  private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
   private static final String POSTGRES_HOST_DIRECTORY = "/target/postgres";
+  private static final String POSTGRES_BACKUP_DIRECTORY = "/target/postgres-base";
+
+  @Override
+  public void beforeAll(ExtensionContext context) throws Exception {
+    PostgreSQLContainer<?> container = new PostgreSQLContainer();
+    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
+    container.start();
+    System.setProperty(JDBC_URL, container.getJdbcUrl());
+    System.setProperty(JDBC_USERNAME, container.getUsername());
+    System.setProperty(JDBC_PASSWORD, container.getPassword());
+
+    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
+    flyway.migrate();
+
+    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File(POSTGRES_BACKUP_DIRECTORY));
+    container.stop();
+  }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
+    FileUtils.copyDirectory(new File(POSTGRES_BACKUP_DIRECTORY), new File(POSTGRES_HOST_DIRECTORY));
     PostgreSQLContainer<?> container = new PostgreSQLContainer();
-    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, "/var/lib/postgresql/data", BindMode.READ_WRITE);
+    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
-    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File("/target/postgres-base"));
-    System.setProperty("jdbc.url", container.getJdbcUrl());
-    System.setProperty("jdbc.username", container.getUsername());
-    System.setProperty("jdbc.password", container.getPassword());
-
-    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-           .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
-           .load();
-    flyway.migrate();
+    System.setProperty(JDBC_URL, container.getJdbcUrl());
+    System.setProperty(JDBC_USERNAME, container.getUsername());
+    System.setProperty(JDBC_PASSWORD, container.getPassword());
   }
 }

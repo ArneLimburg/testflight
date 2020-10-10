@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -32,7 +33,7 @@ import de.openknowledge.extensions.Customer;
 @Flyway
 public class FlywayExtensionTest {
 
-  private static EntityManager entityManager;
+  private EntityManager entityManager;
 
   @BeforeEach
   void setUp() {
