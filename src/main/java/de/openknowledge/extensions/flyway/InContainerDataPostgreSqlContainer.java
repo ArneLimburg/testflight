@@ -15,14 +15,18 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import com.github.dockerjava.api.model.Image;
 
 public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InContainerDataPostgreSqlContainer>
   implements TaggableContainer {
 
   private static final String IMAGE_NAME = "postgres";
+
   public InContainerDataPostgreSqlContainer() {
     super();
     initCommand();
@@ -44,14 +48,14 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
 
   public boolean containsTag(String tag) {
     String repoTag = getImageName(tag);
-    return getDockerClient()
+    List<Image> imageList = getDockerClient()
       .listImagesCmd()
-      .exec()
-      .stream()
-      .flatMap(image -> Arrays.stream(image.getRepoTags()))
-      .filter(t -> t.equals(repoTag))
-      .findAny()
-      .isPresent();
+      .exec();
+
+    return imageList.stream()
+      .map(i -> i.getRepoTags())
+      .filter(Objects::nonNull)
+      .anyMatch(t -> t.equals(repoTag));
   }
 
   @Override
