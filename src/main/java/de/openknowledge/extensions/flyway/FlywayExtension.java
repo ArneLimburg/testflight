@@ -124,11 +124,11 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
-  private <C extends JdbcDatabaseContainer<?> & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
-    C container;
+  private JdbcDatabaseContainer<?> createContainer(ExtensionContext context, StartupType startup) {
+    JdbcDatabaseContainer<?> container;
     Optional<Flyway> configuration = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(flyway -> flyway != null);
     if (!configuration.isPresent()) {
-      container = (C)new InContainerDataPostgreSqlContainer();
+      container = new InContainerDataPostgreSqlContainer();
       if (startup == StartupType.FAST) {
         container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
       }
@@ -142,9 +142,9 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
           Optional<String> imageName = ofNullable((String)getExtensionStore(context).get(STORE_IMAGE));
           imageName = ofNullable(imageName.orElse(flywayConfiguration.dockerImage())).filter(image -> !image.isEmpty());
           if (imageName.isPresent()) {
-            container = (C)new InContainerDataPostgreSqlContainer(imageName.get());
+            container = new InContainerDataPostgreSqlContainer(imageName.get());
           } else {
-            container = (C)new InContainerDataPostgreSqlContainer();
+            container = new InContainerDataPostgreSqlContainer();
           }
           if (startup == StartupType.FAST) {
             container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
