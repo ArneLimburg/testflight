@@ -17,10 +17,13 @@ package de.openknowledge.extensions.flyway;
 
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.testcontainers.containers.PostgreSQLContainer;
 
 public class FlywayExtension implements BeforeEachCallback {
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
+    PostgreSQLContainer<?> container = new PostgreSQLContainer();
+    container.start();
   }
 }
