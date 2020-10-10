@@ -27,6 +27,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import static java.util.Optional.ofNullable;
+
+import java.io.File;
+import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
 import org.flywaydb.core.api.Location;
@@ -50,16 +54,16 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private static final String JDBC_PASSWORD = "jdbc.password";
   private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
   private static final String POSTGRES_HOST_DIRECTORY = "target/postgres";
+  private static final String STORE_IMAGE = "image";
   private static final String STORE_CONTAINER = "container";
   private String currentMigrationTarget;
 
-
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
-    currentMigrationTarget = getCurrentMigrationTarget();
+    long startTime = System.currentTimeMillis();
 
+    currentMigrationTarget = getCurrentMigrationTarget();
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
-    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
     System.setProperty(JDBC_USERNAME, container.getUsername());
@@ -68,27 +72,28 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
       .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
     flyway.migrate();
+    String imageName = ((TaggableContainer)container).tag("myHash");
+    getExtensionStore(context).put(STORE_IMAGE, imageName);
     container.stop();
-
-    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File("target/" + currentMigrationTarget));
+    System.err.println("Initialization in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    FileUtils.copyDirectory(new File("target/" + currentMigrationTarget), new File(POSTGRES_HOST_DIRECTORY));
+    long startTime = System.currentTimeMillis();
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.FAST);
-    container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
     System.setProperty(JDBC_USERNAME, container.getUsername());
     System.setProperty(JDBC_PASSWORD, container.getPassword());
 
-    getStore(context).put(STORE_CONTAINER, container);
+    getMethodStore(context).put(STORE_CONTAINER, container);
+    System.err.println("Startup in " + (System.currentTimeMillis() - startTime) + " Milliseconds");
   }
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
-    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>)getStore(context).get(STORE_CONTAINER);
+    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>)getMethodStore(context).get(STORE_CONTAINER);
     container.stop();
   }
 
@@ -111,15 +116,19 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     return latestMigrationFileName;
   }
 
-  private ExtensionContext.Store getStore(ExtensionContext context) {
+  private ExtensionContext.Store getExtensionStore(ExtensionContext context) {
+    return context.getStore(Namespace.create(FlywayExtension.class));
+  }
+
+  private ExtensionContext.Store getMethodStore(ExtensionContext context) {
     return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
-  private JdbcDatabaseContainer<?> createContainer(ExtensionContext context, StartupType startup) {
-    JdbcDatabaseContainer<?> container;
+  private <C extends JdbcDatabaseContainer<?> & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
+    C container;
     Optional<Flyway> configuration = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(flyway -> flyway != null);
     if (!configuration.isPresent()) {
-      container = new PostgreSQLContainer();
+      container = (C)new InContainerDataPostgreSqlContainer();
       if (startup == StartupType.FAST) {
         container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
       }
@@ -130,10 +139,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
           if (flywayConfiguration.database() != DatabaseType.POSTGRESQL) {
             throw new IllegalStateException("Currently only PostgreSQL is supported");
           }
-          if (flywayConfiguration.dockerImage().length() > 0) {
-            container = new PostgreSQLContainer(flywayConfiguration.dockerImage());
+          Optional<String> imageName = ofNullable((String)getExtensionStore(context).get(STORE_IMAGE));
+          imageName = ofNullable(imageName.orElse(flywayConfiguration.dockerImage())).filter(image -> !image.isEmpty());
+          if (imageName.isPresent()) {
+            container = (C)new InContainerDataPostgreSqlContainer(imageName.get());
           } else {
-            container = new PostgreSQLContainer();
+            container = (C)new InContainerDataPostgreSqlContainer();
           }
           if (startup == StartupType.FAST) {
             container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
