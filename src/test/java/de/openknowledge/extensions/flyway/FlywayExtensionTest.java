@@ -15,19 +15,20 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import de.openknowledge.extensions.Customer;
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import de.openknowledge.extensions.Customer;
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
 @Flyway(database = DatabaseType.POSTGRESQL)
 public class FlywayExtensionTest {
@@ -57,7 +58,7 @@ public class FlywayExtensionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2);
+    assertThat(customers).hasSize(4);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
     System.out.println("===== initialTest stop ======================================= ");
@@ -74,7 +75,7 @@ public class FlywayExtensionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2);
+    assertThat(customers).hasSize(4);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
     System.out.println("===== secondTest stop ======================================= ");

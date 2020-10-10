@@ -15,8 +15,21 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.io.FileUtils;
+import org.flywaydb.core.api.Location;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -27,8 +40,7 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import java.io.File;
-import java.util.Optional;
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
@@ -38,11 +50,14 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   private static final String JDBC_PASSWORD = "jdbc.password";
   private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
   private static final String POSTGRES_HOST_DIRECTORY = "target/postgres";
-  private static final String POSTGRES_BACKUP_DIRECTORY = "target/postgres-base";
   private static final String STORE_CONTAINER = "container";
+  private String currentMigrationTarget;
+
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
+    currentMigrationTarget = getCurrentMigrationTarget();
+
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.SLOW);
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
@@ -55,12 +70,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     flyway.migrate();
     container.stop();
 
-    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File(POSTGRES_BACKUP_DIRECTORY));
+    FileUtils.copyDirectory(new File(POSTGRES_HOST_DIRECTORY), new File("target/" + currentMigrationTarget));
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    FileUtils.copyDirectory(new File(POSTGRES_BACKUP_DIRECTORY), new File(POSTGRES_HOST_DIRECTORY));
+    FileUtils.copyDirectory(new File("target/" + currentMigrationTarget), new File(POSTGRES_HOST_DIRECTORY));
     JdbcDatabaseContainer<?> container = createContainer(context, StartupType.FAST);
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
@@ -73,8 +88,27 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
-    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>) getStore(context).get(STORE_CONTAINER);
+    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>)getStore(context).get(STORE_CONTAINER);
     container.stop();
+  }
+
+  private String getCurrentMigrationTarget() throws URISyntaxException, IOException {
+    org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure().load();
+    Location[] locations = dryway.getConfiguration().getLocations();
+    List<Path> migrations = new ArrayList<>();
+    for (Location location : locations) {
+      URL resource = getClass().getClassLoader().getResource(location.getPath());
+      File file = new File(resource.toURI());
+
+      try (Stream<Path> paths = Files.walk(file.toPath())) {
+        migrations.addAll(paths.filter(Files::isRegularFile).collect(Collectors.toList()));
+      }
+    }
+
+    Optional<Path> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
+    String latestMigrationFileName = latestMigration.get().getFileName().toString().split("__")[0];
+
+    return latestMigrationFileName;
   }
 
   private ExtensionContext.Store getStore(ExtensionContext context) {
