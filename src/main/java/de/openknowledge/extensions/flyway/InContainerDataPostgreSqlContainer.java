@@ -70,7 +70,7 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
   }
 
   @Override
-  public void addFixedExposedPort(int hostPort, int containerPort) {
+  public void addFixedPort(int hostPort, int containerPort) {
     super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
   }
 }

@@ -16,8 +16,9 @@
 package de.openknowledge.extensions.flyway;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Optional.ofNullable;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 import java.io.File;
@@ -26,6 +27,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -66,46 +68,71 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     initialize(context);
   }
 
-  private <C extends JdbcDatabaseContainer<?> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
+  private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
     String currentMigrationTarget = getCurrentMigrationTarget();
+    List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(context);
+    int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
+    String tagName = currentMigrationTarget + testDataTagSuffix;
+
     C container = createContainer(context, StartupType.SLOW);
     Store store = getExtensionStore(context);
-    if (!ofNullable(store.get(JDBC_URL)).isPresent() || !container.containsTag(currentMigrationTarget)) {
+    if (!ofNullable(store.get(JDBC_URL)).isPresent() || !container.containsTag(tagName)) {
       container.start();
 
-      org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-        .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
-      flyway.migrate();
-      Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
-      if (extension.isPresent()) {
-        String[] testDataScripts = extension.get().testDataScripts();
+      prefillDatabase(container, loadableTestDataResources);
+      container.tag(tagName);
 
-        Configuration flywayConfiguration = flyway.getConfiguration();
-        ParsingContext parsingContext = new ParsingContext();
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
-        PostgreSQLParser postgreSqlParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
-
-        for (String testDataScript : testDataScripts) {
-          LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
-          SqlStatementIterator parse = postgreSqlParser.parse(loadableResource);
-          parse.forEachRemaining(p -> p.execute(jdbcTemplate));
-        }
-      }
-      container.tag(currentMigrationTarget);
-
-      getExtensionStore(context).put(STORE_IMAGE, container.getImageName(currentMigrationTarget));
-      store.put(STORE_IMAGE, container.getImageName(currentMigrationTarget));
+      store.put(STORE_IMAGE, container.getImageName(tagName));
       store.put(JDBC_URL, container.getJdbcUrl());
       store.put(JDBC_USERNAME, container.getUsername());
       store.put(JDBC_PASSWORD, container.getPassword());
       store.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
       store.put(STORE_CONTAINER, container);
     } else {
-      store.put(STORE_IMAGE, container.getImageName(currentMigrationTarget));
+      store.put(STORE_IMAGE, container.getImageName(tagName));
     }
     System.setProperty(JDBC_URL, store.get(JDBC_URL, String.class));
     System.setProperty(JDBC_USERNAME, store.get(JDBC_USERNAME, String.class));
     System.setProperty(JDBC_PASSWORD, store.get(JDBC_PASSWORD, String.class));
+  }
+
+  private void prefillDatabase(JdbcDatabaseContainer<?> container, List<LoadableResource> loadableTestDataResources) throws SQLException {
+    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
+    flyway.migrate();
+
+    Configuration flywayConfiguration = flyway.getConfiguration();
+    ParsingContext parsingContext = new ParsingContext();
+    JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
+    PostgreSQLParser postgreSQLParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
+
+    for (LoadableResource testDataScript : loadableTestDataResources) {
+      SqlStatementIterator parse = postgreSQLParser.parse(testDataScript);
+      parse.forEachRemaining(p -> p.execute(jdbcTemplate));
+    }
+  }
+
+  private List<LoadableResource> getTestDataScriptResources(ExtensionContext context) {
+    Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
+    List<LoadableResource> loadableResources = new ArrayList<>();
+    if (extension.isPresent()) {
+      String[] testDataScripts = extension.get().testDataScripts();
+      for (String testDataScript : testDataScripts) {
+        LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
+        loadableResources.add(loadableResource);
+      }
+    }
+
+    return loadableResources;
+  }
+
+  private int getTestDataTagSuffix(List<LoadableResource> loadableTestDataResources) {
+    StringBuilder stringBuilder = new StringBuilder();
+    for (LoadableResource loadableTestDataResource : loadableTestDataResources) {
+      stringBuilder.append(loadableTestDataResource.getFilename());
+    }
+
+    return stringBuilder.toString().hashCode();
   }
 
   @Override
@@ -152,7 +179,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
-  private <C extends JdbcDatabaseContainer<?> & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
+  private <C extends JdbcDatabaseContainer & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
     Optional<Flyway> configuration = findAnnotation(context.getElement(), Flyway.class);
     C container;
     if (!configuration.isPresent()) {
@@ -168,7 +195,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
       }
     }
     Optional.ofNullable(getExtensionStore(context).get(JDBC_PORT, Integer.class))
-      .ifPresent(hostPort -> container.addFixedExposedPort(hostPort, container.getContainerPort()));
+      .ifPresent(hostPort -> container.addFixedPort(hostPort, container.getContainerPort()));
     return container;
   }
 

@@ -21,5 +21,5 @@ public interface TaggableContainer {
   boolean containsTag(String tag);
   void tag(String tag);
   int getContainerPort();
-  void addFixedExposedPort(int hostPort, int containerPort);
+  void addFixedPort(int hostPort, int containerPort);
 }
