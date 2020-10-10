@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
 
@@ -54,6 +55,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
   public void beforeEach(ExtensionContext context) throws Exception {
     FileUtils.copyDirectory(new File(POSTGRES_BACKUP_DIRECTORY), new File(POSTGRES_HOST_DIRECTORY));
     PostgreSQLContainer<?> container = new PostgreSQLContainer();
+    container.setWaitStrategy(Wait.forLogMessage(".*is ready.*", 1));
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
