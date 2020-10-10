@@ -47,8 +47,10 @@ public class FlywayExtensionTest {
     User peter = new User("Peter", "peter@mail.de");
     User hans = new User("Hans", "hans@mail.de");
 
+    entityManager.getTransaction().begin();
     entityManager.persist(peter);
     entityManager.persist(hans);
+    entityManager.getTransaction().commit();
   }
 
   @Test
