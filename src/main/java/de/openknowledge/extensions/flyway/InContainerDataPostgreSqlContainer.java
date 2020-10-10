@@ -64,8 +64,13 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
     return IMAGE_NAME + ":" + tag;
   }
 
-  public InContainerDataPostgreSqlContainer withFixedExposedPort(int hostPort, int containerPort) {
+  @Override
+  public int getContainerPort() {
+    return POSTGRESQL_PORT;
+  }
+
+  @Override
+  public void addFixedExposedPort(int hostPort, int containerPort) {
     super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
-    return this;
   }
 }
