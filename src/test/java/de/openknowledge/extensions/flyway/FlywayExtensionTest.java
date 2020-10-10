@@ -29,8 +29,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import de.openknowledge.extensions.Customer;
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
-@Flyway
+@Flyway(database = DatabaseType.POSTGRESQL)
 public class FlywayExtensionTest {
 
   private EntityManager entityManager;

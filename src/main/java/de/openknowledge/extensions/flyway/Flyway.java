@@ -23,11 +23,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ExtendWith(FlywayExtension.class)
 @Target({ANNOTATION_TYPE, TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Testcontainers
 public @interface Flyway {
+  DatabaseType database();
+  String dockerImage() default "";
+  String[] testDataScripts() default {};
+
+  enum DatabaseType {
+    POSTGRESQL;
+  }
 }

@@ -16,14 +16,18 @@
 package de.openknowledge.extensions.flyway;
 
 import java.io.File;
+import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
 
@@ -36,7 +40,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
-    PostgreSQLContainer<?> container = new PostgreSQLContainer();
+    JdbcDatabaseContainer<?> container = createContainer(context);
     container.addFileSystemBind(POSTGRES_HOST_DIRECTORY, POSTGRES_CONTAINER_DIRECTORY, BindMode.READ_WRITE);
     container.start();
     System.setProperty(JDBC_URL, container.getJdbcUrl());
@@ -61,5 +65,24 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
     System.setProperty(JDBC_URL, container.getJdbcUrl());
     System.setProperty(JDBC_USERNAME, container.getUsername());
     System.setProperty(JDBC_PASSWORD, container.getPassword());
+  }
+
+  private JdbcDatabaseContainer<?> createContainer(ExtensionContext context) {
+    JdbcDatabaseContainer<?> container;
+    Optional<Flyway> configuration = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(flyway -> flyway != null);
+    if (!configuration.isPresent()) {
+      container = new PostgreSQLContainer();
+    } else {
+      Flyway flywayConfiguration = configuration.get();
+      if (flywayConfiguration.database() != DatabaseType.POSTGRESQL) {
+        throw new IllegalStateException("Currently only PostgreSQL is supported");
+      }
+      if (flywayConfiguration.dockerImage().length() > 0) {
+        container = new PostgreSQLContainer(flywayConfiguration.dockerImage());
+      } else {
+        container = new PostgreSQLContainer();
+      }
+    }
+    return container;
   }
 }
