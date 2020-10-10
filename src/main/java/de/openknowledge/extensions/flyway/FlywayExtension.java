@@ -15,21 +15,22 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import java.io.File;
-import java.util.Optional;
-
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import java.io.File;
+import java.util.Optional;
 
-public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
+public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
   private static final String JDBC_URL = "jdbc.url";
   private static final String JDBC_USERNAME = "jdbc.username";
@@ -37,6 +38,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
   private static final String POSTGRES_CONTAINER_DIRECTORY = "/var/lib/postgresql/data";
   private static final String POSTGRES_HOST_DIRECTORY = "target/postgres";
   private static final String POSTGRES_BACKUP_DIRECTORY = "target/postgres-base";
+  private static final String STORE_CONTAINER = "container";
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
@@ -65,6 +67,18 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback {
     System.setProperty(JDBC_URL, container.getJdbcUrl());
     System.setProperty(JDBC_USERNAME, container.getUsername());
     System.setProperty(JDBC_PASSWORD, container.getPassword());
+
+    getStore(context).put(STORE_CONTAINER, container);
+  }
+
+  @Override
+  public void afterEach(ExtensionContext context) throws Exception {
+    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>) getStore(context).get(STORE_CONTAINER);
+    container.stop();
+  }
+
+  private ExtensionContext.Store getStore(ExtensionContext context) {
+    return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
   private JdbcDatabaseContainer<?> createContainer(ExtensionContext context) {

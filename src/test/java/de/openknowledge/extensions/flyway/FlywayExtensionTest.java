@@ -15,21 +15,19 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import de.openknowledge.extensions.Customer;
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import de.openknowledge.extensions.Customer;
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Flyway(database = DatabaseType.POSTGRESQL)
 public class FlywayExtensionTest {
@@ -50,6 +48,7 @@ public class FlywayExtensionTest {
 
   @Test
   void initialTest() {
+    System.out.println("===== initialTest start ======================================= ");
     Customer hans = new Customer("Hans", "hans@mail.de");
 
     entityManager.getTransaction().begin();
@@ -61,10 +60,12 @@ public class FlywayExtensionTest {
     assertThat(customers).hasSize(2);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
+    System.out.println("===== initialTest stop ======================================= ");
   }
 
   @Test
   void secondTest() {
+    System.out.println("===== secondTest start ======================================= ");
     Customer peter = new Customer("Peter", "peter@mail.de");
 
     entityManager.getTransaction().begin();
@@ -76,5 +77,6 @@ public class FlywayExtensionTest {
     assertThat(customers).hasSize(2);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in init script
+    System.out.println("===== secondTest stop ======================================= ");
   }
 }
