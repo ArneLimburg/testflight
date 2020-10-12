@@ -35,7 +35,7 @@ import de.openknowledge.extensions.Customer;
 import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
 @Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
-public class FlywayExtensionTest {
+public class PostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
