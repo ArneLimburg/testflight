@@ -18,7 +18,6 @@ package de.openknowledge.extensions.flyway;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
-
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 import java.io.File;
@@ -50,7 +49,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
@@ -104,10 +102,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     Configuration flywayConfiguration = flyway.getConfiguration();
     ParsingContext parsingContext = new ParsingContext();
     JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
-    PostgreSQLParser postgreSQLParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
+    PostgreSQLParser postgreSqlParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
 
     for (LoadableResource testDataScript : loadableTestDataResources) {
-      SqlStatementIterator parse = postgreSQLParser.parse(testDataScript);
+      SqlStatementIterator parse = postgreSqlParser.parse(testDataScript);
       parse.forEachRemaining(p -> p.execute(jdbcTemplate));
     }
   }

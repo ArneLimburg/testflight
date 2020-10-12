@@ -66,7 +66,6 @@ public class PostgreSqlTest {
 
   @Test
   void initialTest() {
-    System.out.println("===== initialTest start ======================================= ");
     Customer hans = new Customer("Hans", "hans@mail.de");
 
     entityManager.getTransaction().begin();
@@ -77,15 +76,13 @@ public class PostgreSqlTest {
 
     assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser"));// in init script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2"));// in second init script
-    System.out.println("===== initialTest stop ======================================= ");
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
   }
 
   @Test
   void secondTest() {
-    System.out.println("===== secondTest start ======================================= ");
     Customer peter = new Customer("Peter", "peter@mail.de");
 
     entityManager.getTransaction().begin();
@@ -96,9 +93,8 @@ public class PostgreSqlTest {
 
     assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin"));// in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser"));// in init script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2"));// in second init script
-    System.out.println("===== secondTest stop ======================================= ");
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
   }
 }
