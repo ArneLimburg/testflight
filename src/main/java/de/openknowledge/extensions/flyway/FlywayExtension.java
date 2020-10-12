@@ -148,8 +148,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
-    PostgreSQLContainer<?> container = (PostgreSQLContainer<?>)getMethodStore(context).get(STORE_CONTAINER);
-    container.stop();
+    AutoCloseable container = getMethodStore(context).get(STORE_CONTAINER, AutoCloseable.class);
+    container.close();
   }
 
   private String getCurrentMigrationTarget() throws URISyntaxException, IOException {
@@ -180,7 +180,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   }
 
   private <C extends JdbcDatabaseContainer & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
-    Optional<Flyway> configuration = findAnnotation(context.getElement(), Flyway.class);
+    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     C container;
     if (!configuration.isPresent()) {
       container = (C)createPostgreSqlContainer(context, startup);
@@ -200,7 +200,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   }
 
   private InContainerDataPostgreSqlContainer createPostgreSqlContainer(ExtensionContext context, StartupType startup) {
-    Optional<Flyway> configuration = findAnnotation(context.getElement(), Flyway.class);
+    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     Optional<String> imageName = ofNullable((String)getExtensionStore(context).get(STORE_IMAGE));
     imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
 

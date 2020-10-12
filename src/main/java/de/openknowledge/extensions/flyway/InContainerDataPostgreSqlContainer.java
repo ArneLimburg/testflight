@@ -15,18 +15,11 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import java.util.List;
-import java.util.Objects;
-
 import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import com.github.dockerjava.api.model.Image;
-
 public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InContainerDataPostgreSqlContainer>
-  implements TaggableContainer {
-
-  private static final String IMAGE_NAME = "postgres";
+  implements DefaultTaggableContainer<InContainerDataPostgreSqlContainer> {
 
   public InContainerDataPostgreSqlContainer() {
     super();
@@ -42,26 +35,9 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
     this.withEnv("PGDATA", "/var/lib/postgresql/data-local");
   }
 
-  public void tag(String hash) {
-    String commitedImage = getDockerClient().commitCmd(getContainerId()).exec();
-    getDockerClient().tagImageCmd(commitedImage, IMAGE_NAME, hash).exec();
-  }
-
-  public boolean containsTag(String tag) {
-    String repoTag = getImageName(tag);
-    List<Image> imageList = getDockerClient()
-      .listImagesCmd()
-      .exec();
-
-    return imageList.stream()
-      .map(i -> i.getRepoTags())
-      .filter(Objects::nonNull)
-      .anyMatch(t -> t.equals(repoTag));
-  }
-
   @Override
-  public String getImageName(String tag) {
-    return IMAGE_NAME + ":" + tag;
+  public String getDefaultImageName() {
+    return IMAGE;
   }
 
   @Override
