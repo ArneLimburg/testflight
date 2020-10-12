@@ -20,12 +20,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.TableGenerator;
 
 @Entity
 public class Customer {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "customer-id")
+  @TableGenerator(name = "customer-id", table = "ids", pkColumnName = "id", pkColumnValue = "customer_id", valueColumnName = "value")
   Long id;
 
   @Column
@@ -44,6 +46,10 @@ public class Customer {
   }
 
   public String getUserName() {
+    return userName;
+  }
+
+  public String toString() {
     return userName;
   }
 }

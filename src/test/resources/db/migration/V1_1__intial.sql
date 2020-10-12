@@ -1,4 +1,8 @@
-create sequence hibernate_sequence start 1 increment 1;
+create table ids
+(
+    id       varchar(255) not null,
+    value    int8 not null
+);
 
 create table Customer
 (
@@ -8,7 +12,6 @@ create table Customer
     primary key (id)
 );
 
-
-insert into Customer (id, email, userName)
-values (nextval('hibernate_sequence'), 'admin@mail.de', 'Admin');
+insert into Customer (id, email, userName) values (1, 'admin@mail.de', 'Admin');
+insert into ids (id, value) values ('customer_id', 2);
 

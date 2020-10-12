@@ -1,3 +1,3 @@
-insert into Customer (id, email, userName)
-values (nextval('hibernate_sequence'), 'tesdata@tesdata.de', 'tesdataUser');
+insert into Customer (id, email, userName) select value, 'tesdata@tesdata.de', 'tesdataUser' from ids where id = 'customer_id';  
+update ids set value = (select value + 1 from ids where id = 'customer_id') where id = 'customer_id';
 
