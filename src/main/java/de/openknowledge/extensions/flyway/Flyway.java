@@ -17,6 +17,7 @@ package de.openknowledge.extensions.flyway;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.TYPE;
+import static org.testcontainers.containers.PostgreSQLContainer.IMAGE;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -33,6 +34,20 @@ public @interface Flyway {
   String[] testDataScripts() default {};
 
   enum DatabaseType {
-    POSTGRESQL;
+    POSTGRESQL(IMAGE);
+
+    private String image;
+
+    DatabaseType(String databaseImage) {
+      this.image = databaseImage;
+    }
+
+    public String getImage() {
+      return image;
+    }
+
+    public String getImage(String tag) {
+      return getImage() + ":" + tag;
+    }
   }
 }

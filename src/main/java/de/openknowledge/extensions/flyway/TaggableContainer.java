@@ -17,8 +17,6 @@ package de.openknowledge.extensions.flyway;
 
 public interface TaggableContainer {
 
-  String getImageName(String tag);
-  boolean containsTag(String tag);
   void tag(String tag);
   int getContainerPort();
   void addFixedPort(int hostPort, int containerPort);

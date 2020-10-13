@@ -28,8 +28,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,12 +50,18 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+
+import com.github.dockerjava.api.model.Image;
+
+import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
+  private static final String MIGRATION_TAG = "migration.tag";
   private static final String JDBC_URL = "jdbc.url";
   private static final String JDBC_USERNAME = "jdbc.username";
   private static final String JDBC_PASSWORD = "jdbc.password";
@@ -67,31 +75,38 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   }
 
   private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
+    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     String currentMigrationTarget = getCurrentMigrationTarget();
-    List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(context);
+    List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
     int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
     String tagName = currentMigrationTarget + testDataTagSuffix;
 
-    C container = createContainer(context, StartupType.SLOW);
-    Store store = getExtensionStore(context);
-    if (!ofNullable(store.get(JDBC_URL)).isPresent() || !container.containsTag(tagName)) {
-      container.start();
+    Store globalStore = getGlobalStore(context, tagName);
+    Store classStore = getClassStore(context);
+    DatabaseType type = configuration.map(Flyway::database).orElse(DatabaseType.POSTGRESQL);
+    String image = type.getImage(tagName);
+    classStore.put(MIGRATION_TAG, tagName);
 
+    C container;
+    if (!existsImage(image)) {
+      container = createContainer(context, StartupType.SLOW);
+      container.start();
       prefillDatabase(container, loadableTestDataResources);
       container.tag(tagName);
-
-      store.put(STORE_IMAGE, container.getImageName(tagName));
-      store.put(JDBC_URL, container.getJdbcUrl());
-      store.put(JDBC_USERNAME, container.getUsername());
-      store.put(JDBC_PASSWORD, container.getPassword());
-      store.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
-      store.put(STORE_CONTAINER, container);
+      globalStore.put(STORE_IMAGE, image);
     } else {
-      store.put(STORE_IMAGE, container.getImageName(tagName));
+      globalStore.put(STORE_IMAGE, image);
+      container = createContainer(context, StartupType.FAST);
+      container.start();
     }
-    System.setProperty(JDBC_URL, store.get(JDBC_URL, String.class));
-    System.setProperty(JDBC_USERNAME, store.get(JDBC_USERNAME, String.class));
-    System.setProperty(JDBC_PASSWORD, store.get(JDBC_PASSWORD, String.class));
+    globalStore.put(JDBC_URL, container.getJdbcUrl());
+    globalStore.put(JDBC_USERNAME, container.getUsername());
+    globalStore.put(JDBC_PASSWORD, container.getPassword());
+    globalStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
+    globalStore.put(STORE_CONTAINER, container);
+    System.setProperty(JDBC_URL, globalStore.get(JDBC_URL, String.class));
+    System.setProperty(JDBC_USERNAME, globalStore.get(JDBC_USERNAME, String.class));
+    System.setProperty(JDBC_PASSWORD, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
   private void prefillDatabase(JdbcDatabaseContainer<?> container, List<LoadableResource> loadableTestDataResources) throws SQLException {
@@ -110,11 +125,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     }
   }
 
-  private List<LoadableResource> getTestDataScriptResources(ExtensionContext context) {
-    Optional<Flyway> extension = context.getTestClass().map(type -> type.getAnnotation(Flyway.class)).filter(fly -> fly != null);
+  private List<LoadableResource> getTestDataScriptResources(Optional<Flyway> configuration) {
     List<LoadableResource> loadableResources = new ArrayList<>();
-    if (extension.isPresent()) {
-      String[] testDataScripts = extension.get().testDataScripts();
+    if (configuration.isPresent()) {
+      String[] testDataScripts = configuration.get().testDataScripts();
       for (String testDataScript : testDataScripts) {
         LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
         loadableResources.add(loadableResource);
@@ -135,7 +149,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    JdbcDatabaseContainer<?> container = getExtensionStore(context).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
+    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
+    JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
     if (!container.isRunning()) {
       container = createContainer(context, StartupType.FAST);
       container.start();
@@ -169,8 +184,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     return latestMigrationFileName;
   }
 
-  private ExtensionContext.Store getExtensionStore(ExtensionContext context) {
-    return context.getStore(Namespace.create(FlywayExtension.class));
+  private ExtensionContext.Store getGlobalStore(ExtensionContext context, String tag) {
+    return context.getRoot().getStore(Namespace.create(FlywayExtension.class, tag));
+  }
+
+  private ExtensionContext.Store getClassStore(ExtensionContext context) {
+    return context.getStore(Namespace.create(context.getRequiredTestClass()));
   }
 
   private ExtensionContext.Store getMethodStore(ExtensionContext context) {
@@ -192,14 +211,16 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
           throw new IllegalStateException("Database type " + flywayConfiguration.database() + " is not supported");
       }
     }
-    Optional.ofNullable(getExtensionStore(context).get(JDBC_PORT, Integer.class))
+    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
+    Optional.ofNullable(getGlobalStore(context, tag).get(JDBC_PORT, Integer.class))
       .ifPresent(hostPort -> container.addFixedPort(hostPort, container.getContainerPort()));
     return container;
   }
 
   private InContainerDataPostgreSqlContainer createPostgreSqlContainer(ExtensionContext context, StartupType startup) {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    Optional<String> imageName = ofNullable((String)getExtensionStore(context).get(STORE_IMAGE));
+    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
+    Optional<String> imageName = ofNullable(getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
     imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
 
     InContainerDataPostgreSqlContainer container = imageName
@@ -209,6 +230,19 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
       container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
     }
     return container;
+  }
+
+  private boolean existsImage(String imageName) {
+    List<Image> imageList = DockerClientFactory.lazyClient()
+      .listImagesCmd()
+      .exec();
+
+    return imageList.stream()
+      .map(i -> i.getRepoTags())
+      .filter(Objects::nonNull)
+      .flatMap(Arrays::stream)
+      .anyMatch(t -> t.equals(imageName));
+
   }
 
   private enum StartupType {

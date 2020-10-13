@@ -192,7 +192,6 @@
           </execution>
         </executions>
       </plugin>
-      <!-- 
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -237,12 +236,12 @@
                     <limit>
                       <counter>METHOD</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>1</minimum>
+                      <minimum>1.00</minimum>
                     </limit>
                     <limit>
                       <counter>CLASS</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>1</minimum>
+                      <minimum>1.00</minimum>
                     </limit>
                   </limits>
                 </rule>
@@ -251,7 +250,6 @@
           </execution>
         </executions>
       </plugin>
--->
     </plugins>
   </build>
 </project>

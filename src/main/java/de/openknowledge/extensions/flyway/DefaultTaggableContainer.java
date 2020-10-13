@@ -15,12 +15,7 @@
  */
 package de.openknowledge.extensions.flyway;
 
-import java.util.List;
-import java.util.Objects;
-
 import org.testcontainers.containers.Container;
-
-import com.github.dockerjava.api.model.Image;
 
 public interface DefaultTaggableContainer<SELF extends DefaultTaggableContainer<SELF>> extends TaggableContainer, Container<SELF> {
 
@@ -29,22 +24,5 @@ public interface DefaultTaggableContainer<SELF extends DefaultTaggableContainer<
   default void tag(String hash) {
     String commitedImage = getDockerClient().commitCmd(getContainerId()).exec();
     getDockerClient().tagImageCmd(commitedImage, getDefaultImageName(), hash).exec();
-  }
-
-  default boolean containsTag(String tag) {
-    String repoTag = getImageName(tag);
-    List<Image> imageList = getDockerClient()
-      .listImagesCmd()
-      .exec();
-
-    return imageList.stream()
-      .map(i -> i.getRepoTags())
-      .filter(Objects::nonNull)
-      .anyMatch(t -> t.equals(repoTag));
-  }
-
-  @Override
-  default String getImageName(String tag) {
-    return getDefaultImageName() + ":" + tag;
   }
 }
