@@ -3,6 +3,10 @@ node_modules
 target
 .svn
 .idea
+.classpath
+.project
+.settings/
+.checkstyle
 *.class
 *.iml
 *.ipr
