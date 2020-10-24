@@ -19,5 +19,7 @@ If you want to use a custom docker image for your database, specify it via `@Fly
 
 ## Why is the Flyway Extension so fast?
 
-The Flyway Extension does the actual migration at most once per run. Then the resulting docker image is cached and reused for every test.
-If you don't change your flyway scripts and your test data, the Flyway Extension will even reuse that image for further runs.
+The Flyway Extension does the actual migration at most once per test suite execution (That means 'once per `mvn test` run). Then the resulting docker image is cached and reused for every test.
+If you don't change your flyway scripts and your test data, the Flyway Extension will even reuse that image for further test executions.
+So as long as the database and test data does not change, the database image (with the test data) will be reused,
+even when you run the tests from your IDE.
