@@ -60,6 +60,7 @@
     <sonar.projectKey>ArneLimburg_testflight</sonar.projectKey>
     <sonar.organization>arnelimburg-github</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <sonar.coverage.jacoco.xmlReportPaths>${project.build.outputDirectory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
   </properties>
 
   <dependencyManagement>
