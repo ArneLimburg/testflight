@@ -1,3 +1,5 @@
+![build](https://github.com/ArneLimburg/testflight/workflows/build/badge.svg)[![sonarcloud](https://sonarcloud.io/api/project_badges/measure?project=space.testflight%3Atestflight&metric=security_rating)](https://sonarcloud.io/dashboard?id=space.testflight%3Atestflight) [![sonarcloud](https://sonarcloud.io/api/project_badges/measure?project=space.testflight%3Atestflight&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=space.testflight%3Atestflight) [![sonarcloud](https://sonarcloud.io/api/project_badges/measure?project=space.testflight%3Atestflight&metric=bugs)](https://sonarcloud.io/dashboard?id=space.testflight%3Atestflight) [![sonarcloud](https://sonarcloud.io/api/project_badges/measure?project=space.testflight%3Atestflight&metric=coverage)](https://sonarcloud.io/dashboard?id=space.testflight%3Atestflight)
+
 # Testflight.Space
 
 Testflight.Space is a JUnit 5 extension for flyway to mandate fast database tests with real databases and real flyway migrations.
