@@ -1,6 +1,6 @@
-# Flyway Extension
+# Testflight.Space
 
-The Flyway Extension is a JUnit 5 extension to mandate fast database tests with real databases and real flyway migrations.
+Testflight.Space is a JUnit 5 extension for flyway to mandate fast database tests with real databases and real flyway migrations.
 
 Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be started for every test execution.
 
@@ -17,9 +17,10 @@ Simply configure them via `@Flyway(testDataScripts = {...})`.
 
 If you want to use a custom docker image for your database, specify it via `@Flyway(dockerImage = "")`.
 
-## Why is the Flyway Extension so fast?
+## Why is Testflight.Space so fast?
 
-The Flyway Extension does the actual migration at most once per test suite execution (That means 'once per `mvn test` run). Then the resulting docker image is cached and reused for every test.
-If you don't change your flyway scripts and your test data, the Flyway Extension will even reuse that image for further test executions.
+Testflight.Space does the actual migration at most once per test suite execution (That means i.e. 'once per `mvn test` run).
+Then the resulting docker image is cached and reused for every test.
+If you don't change your flyway scripts and your test data, Testflight.Space will even reuse that image for further test executions.
 So as long as the database and test data does not change, the database image (with the test data) will be reused,
 even when you run the tests from your IDE.

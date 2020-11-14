@@ -13,11 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.openknowledge.extensions.flyway;
+package space.testflight;
 
-public interface TaggableContainer {
+import org.testcontainers.containers.Container;
 
-  void tag(String tag);
-  int getContainerPort();
-  void addFixedPort(int hostPort, int containerPort);
+public interface DefaultTaggableContainer<SELF extends DefaultTaggableContainer<SELF>> extends TaggableContainer, Container<SELF> {
+
+  String getDefaultImageName();
+
+  default void tag(String hash) {
+    String commitedImage = getDockerClient().commitCmd(getContainerId()).exec();
+    getDockerClient().tagImageCmd(commitedImage, getDefaultImageName(), hash).exec();
+  }
 }

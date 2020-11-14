@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.openknowledge.extensions.flyway;
+package space.testflight;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.of;
@@ -56,7 +56,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import com.github.dockerjava.api.model.Image;
 
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import space.testflight.Flyway.DatabaseType;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 

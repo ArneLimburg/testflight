@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.openknowledge.extensions.flyway;
+package space.testflight.postgresql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,12 +30,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import de.openknowledge.extensions.Customer;
+import space.testflight.Flyway;
+import space.testflight.Flyway.DatabaseType;
+import space.testflight.model.Customer;
 
-@ExtendWith(FlywayExtension.class)
-public class DefaultDatabaseTest {
+@Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
+public class SecondPostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
@@ -74,11 +75,11 @@ public class DefaultDatabaseTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
+    assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin2")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin3")); // in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
   }
 
   @Test
@@ -91,10 +92,10 @@ public class DefaultDatabaseTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
+    assertThat(customers).hasSize(6);
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
     assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin2")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin3")); // in flyway script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
+    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
   }
 }

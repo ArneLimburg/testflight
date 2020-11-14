@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.openknowledge.extensions.flyway;
+package space.testflight.postgresql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,11 +31,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import de.openknowledge.extensions.Customer;
-import de.openknowledge.extensions.flyway.Flyway.DatabaseType;
+import space.testflight.Flyway;
+import space.testflight.Flyway.DatabaseType;
+import space.testflight.model.Customer;
 
 @Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
-public class SecondPostgreSqlTest {
+public class PostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

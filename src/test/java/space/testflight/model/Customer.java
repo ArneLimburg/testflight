@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.openknowledge.extensions;
+package space.testflight.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
