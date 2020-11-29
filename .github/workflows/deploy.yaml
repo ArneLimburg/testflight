@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - '**.md'
 
 jobs:
   build:
@@ -13,15 +15,19 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@v2
+      - id: setup-git
+        run: |
+          git config user.name arne
+          git config user.email arne@apache.org
       - id: install-key
         name: Install gpg secret key
         run: |
           cat <(echo -e "${{ secrets.GPG_SECRET_KEY }}") | gpg --batch --import
       - id: install-jdk
-        name: Set up JDK 11
+        name: Set up JDK 8
         uses: actions/setup-java@v1
         with:
-          java-version: 11
+          java-version: 8
       - name: Cache SonarCloud packages
         uses: actions/cache@v1
         with:
@@ -39,13 +45,21 @@ jobs:
         uses: s4u/maven-settings-action@v2.2.0
         with:
           servers: '[{"id": "ossrh", "username": "${OSSRH_USERNAME}", "password": "${OSSRH_PASSWORD}"}]'
-      - id: maven-deploy
-        name: Deploy
-        run: mvn -Dgpg.passphrase=$GPG_PASSPHRASE clean verify jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar deploy
+      - id: maven-build
+        name: Build with Maven
+        run: mvn clean package jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
+      - id: maven-release
+        name: Release
+        run: |
+          mvn -B release:prepare
+          mvn release:perform -DreleaseProfiles=release -Darguments=-Dgpg.passphrase=$GPG_PASSPHRASE
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           
