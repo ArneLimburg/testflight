@@ -28,6 +28,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+      - id: remove-docker-images
+        name: Remove the images
+        uses: stevemar/image-deleter@v1.0.1
       - name: Cache SonarCloud packages
         uses: actions/cache@v1
         with:

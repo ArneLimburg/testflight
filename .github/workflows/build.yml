@@ -19,12 +19,17 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
-      - name: Cache Maven packages
+      - id: remove-docker-images
+        name: Remove the images
+        uses: stevemar/image-deleter@v1.0.1
+      - id: setup-maven
+        name: Cache Maven packages
         uses: actions/cache@v2
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Build with Maven
+      - id: maven-build
+        name: Build with Maven
         run: mvn clean verify
         
