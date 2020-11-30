@@ -202,7 +202,9 @@
     </module>
     <module name="TypecastParenPad"/>
 
-    <module name="UncommentedMain"/>
+    <module name="UncommentedMain">
+      <property name="excludedClasses" value="space.testflight.DockerImageCleaner"/>
+    </module>
     <module name="UnusedImports"/>
     <module name="UpperEll"/>
 

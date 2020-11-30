@@ -60,6 +60,7 @@ import space.testflight.Flyway.DatabaseType;
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
+  public static final String TESTFLIGHT_PREFIX = "testflight-";
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
   private static final String MIGRATION_TAG = "migration.tag";
   private static final String JDBC_URL = "jdbc.url";
@@ -79,7 +80,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     String currentMigrationTarget = getCurrentMigrationTarget();
     List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
     int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
-    String tagName = currentMigrationTarget + testDataTagSuffix;
+    String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget + testDataTagSuffix;
 
     Store globalStore = getGlobalStore(context, tagName);
     Store classStore = getClassStore(context);
