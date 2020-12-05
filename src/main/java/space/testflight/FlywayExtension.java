@@ -63,9 +63,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   public static final String TESTFLIGHT_PREFIX = "testflight-";
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
   private static final String MIGRATION_TAG = "migration.tag";
-  private static final String JDBC_URL = "jdbc.url";
-  private static final String JDBC_USERNAME = "jdbc.username";
-  private static final String JDBC_PASSWORD = "jdbc.password";
+  private static final String JDBC_URL = "space.testflight.jdbc.url";
+  private static final String JDBC_USERNAME = "space.testflight.jdbc.username";
+  private static final String JDBC_PASSWORD = "space.testflight.jdbc.password";
+  private static final String JDBC_URL_PROPERTY = "space.testflight.jdbc.url.property";
+  private static final String JDBC_USERNAME_PROPERTY = "space.testflight.jdbc.username.property";
+  private static final String JDBC_PASSWORD_PROPERTY = "space.testflight.jdbc.password.property";
   private static final String JDBC_PORT = "jdbc.port";
   private static final String STORE_IMAGE = "image";
   private static final String STORE_CONTAINER = "container";
@@ -105,9 +108,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     globalStore.put(JDBC_PASSWORD, container.getPassword());
     globalStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
     globalStore.put(STORE_CONTAINER, container);
-    System.setProperty(JDBC_URL, globalStore.get(JDBC_URL, String.class));
-    System.setProperty(JDBC_USERNAME, globalStore.get(JDBC_USERNAME, String.class));
-    System.setProperty(JDBC_PASSWORD, globalStore.get(JDBC_PASSWORD, String.class));
+    setSystemProperties(configuration, globalStore);
   }
 
   private void prefillDatabase(JdbcDatabaseContainer<?> container, List<LoadableResource> loadableTestDataResources) throws SQLException {
@@ -146,6 +147,27 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
     }
 
     return stringBuilder.toString().hashCode();
+  }
+
+  private void setSystemProperties(Optional<Flyway> configuration, Store globalStore) {
+    String urlPropertyName = configuration.map(Flyway::configuration)
+      .map(Arrays::stream)
+      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_URL_PROPERTY)).findAny())
+      .map(ConfigProperty::value)
+      .orElse(JDBC_URL);
+    String userPropertyName = configuration.map(Flyway::configuration)
+      .map(Arrays::stream)
+      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_USERNAME_PROPERTY)).findAny())
+      .map(ConfigProperty::value)
+      .orElse(JDBC_USERNAME);
+    String passwordPropertyName = configuration.map(Flyway::configuration)
+      .map(Arrays::stream)
+      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_PASSWORD_PROPERTY)).findAny())
+      .map(ConfigProperty::value)
+      .orElse(JDBC_PASSWORD);
+    System.setProperty(urlPropertyName, globalStore.get(JDBC_URL, String.class));
+    System.setProperty(userPropertyName, globalStore.get(JDBC_USERNAME, String.class));
+    System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
   @Override

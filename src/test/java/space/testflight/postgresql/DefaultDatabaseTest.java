@@ -44,9 +44,9 @@ public class DefaultDatabaseTest {
   @BeforeAll
   static void createEntityManagerFactory() {
     Map<String, String> properties = new HashMap<>();
-    properties.put("javax.persistence.jdbc.url", System.getProperty("jdbc.url"));
-    properties.put("javax.persistence.jdbc.user", System.getProperty("jdbc.username"));
-    properties.put("javax.persistence.jdbc.password", System.getProperty("jdbc.password"));
+    properties.put("javax.persistence.jdbc.url", System.getProperty("space.testflight.jdbc.url"));
+    properties.put("javax.persistence.jdbc.user", System.getProperty("space.testflight.jdbc.username"));
+    properties.put("javax.persistence.jdbc.password", System.getProperty("space.testflight.jdbc.password"));
     entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
   }
 

@@ -17,9 +17,7 @@ package space.testflight.postgresql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -31,11 +29,19 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import space.testflight.ConfigProperty;
 import space.testflight.Flyway;
 import space.testflight.Flyway.DatabaseType;
 import space.testflight.model.Customer;
 
-@Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
+@Flyway(
+  database = DatabaseType.POSTGRESQL,
+  testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
+  configuration = {
+  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+})
 public class PostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
@@ -43,11 +49,7 @@ public class PostgreSqlTest {
 
   @BeforeAll
   static void createEntityManagerFactory() {
-    Map<String, String> properties = new HashMap<>();
-    properties.put("javax.persistence.jdbc.url", System.getProperty("jdbc.url"));
-    properties.put("javax.persistence.jdbc.user", System.getProperty("jdbc.username"));
-    properties.put("javax.persistence.jdbc.password", System.getProperty("jdbc.password"));
-    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
+    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", System.getProperties());
   }
 
   @AfterAll
