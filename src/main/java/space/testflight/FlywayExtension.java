@@ -46,7 +46,7 @@ import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
@@ -58,7 +58,7 @@ import com.github.dockerjava.api.model.Image;
 
 import space.testflight.Flyway.DatabaseType;
 
-public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
+public class FlywayExtension implements BeforeAllCallback, BeforeTestExecutionCallback, AfterEachCallback {
 
   public static final String TESTFLIGHT_PREFIX = "testflight-";
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
@@ -171,7 +171,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, A
   }
 
   @Override
-  public void beforeEach(ExtensionContext context) throws Exception {
+  public void beforeTestExecution(ExtensionContext context) throws Exception {
     String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
     JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
     if (!container.isRunning()) {
