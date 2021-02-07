@@ -19,12 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static space.testflight.FlywayExtension.TESTFLIGHT_PREFIX;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -44,11 +42,6 @@ public class DockerImageCleanerTest {
   @BeforeAll
   static void createDockerClient() {
     client = DockerClientFactory.lazyClient();
-  }
-
-  @AfterAll
-  static void closeDockerClient() throws IOException {
-    client.close();
   }
 
   @BeforeEach
