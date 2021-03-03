@@ -44,8 +44,11 @@ import org.flywaydb.core.internal.parser.ParsingContext;
 import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
+import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
@@ -58,7 +61,9 @@ import com.github.dockerjava.api.model.Image;
 
 import space.testflight.Flyway.DatabaseType;
 
-public class FlywayExtension implements BeforeAllCallback, BeforeTestExecutionCallback, AfterEachCallback {
+
+public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, BeforeTestExecutionCallback,
+  AfterTestExecutionCallback, AfterEachCallback, AfterAllCallback {
 
   public static final String TESTFLIGHT_PREFIX = "testflight-";
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
@@ -76,6 +81,68 @@ public class FlywayExtension implements BeforeAllCallback, BeforeTestExecutionCa
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
     initialize(context);
+
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_CLASS) {
+      startupDb(context, false);
+    }
+  }
+
+  @Override
+  public void beforeEach(ExtensionContext context) throws Exception {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_METHOD) {
+      startupDb(context, true);
+    }
+  }
+
+  @Override
+  public void beforeTestExecution(ExtensionContext context) throws Exception {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_EXECUTION) {
+      startupDb(context, true);
+    }
+  }
+
+  @Override
+  public void afterTestExecution(ExtensionContext context) throws Exception {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_EXECUTION) {
+      teardownDb(context, true);
+    }
+  }
+
+  @Override
+  public void afterEach(ExtensionContext context) throws Exception {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_METHOD) {
+      teardownDb(context, true);
+    }
+  }
+
+  @Override
+  public void afterAll(ExtensionContext context) throws Exception {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_CLASS) {
+      teardownDb(context, false);
+    }
+  }
+
+  private void startupDb(ExtensionContext context, boolean useMethodLevelStore) {
+    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
+    JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
+    if (!container.isRunning()) {
+      container = createContainer(context, StartupType.FAST);
+      container.start();
+    }
+
+    if (useMethodLevelStore) {
+      getMethodStore(context).put(STORE_CONTAINER, container);
+    } else {
+      getClassStore(context).put(STORE_CONTAINER, container);
+    }
+  }
+
+  private void teardownDb(ExtensionContext context, boolean useMethodLevelStore) throws Exception {
+    if (useMethodLevelStore) {
+      getMethodStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
+    } else {
+      getClassStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
+    }
   }
 
   private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
@@ -170,24 +237,6 @@ public class FlywayExtension implements BeforeAllCallback, BeforeTestExecutionCa
     System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
-  @Override
-  public void beforeTestExecution(ExtensionContext context) throws Exception {
-    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
-    JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
-    if (!container.isRunning()) {
-      container = createContainer(context, StartupType.FAST);
-      container.start();
-    }
-
-    getMethodStore(context).put(STORE_CONTAINER, container);
-  }
-
-  @Override
-  public void afterEach(ExtensionContext context) throws Exception {
-    AutoCloseable container = getMethodStore(context).get(STORE_CONTAINER, AutoCloseable.class);
-    container.close();
-  }
-
   private String getCurrentMigrationTarget() throws URISyntaxException, IOException {
     org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure().load();
     Location[] locations = dryway.getConfiguration().getLocations();
@@ -266,6 +315,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeTestExecutionCa
       .flatMap(Arrays::stream)
       .anyMatch(t -> t.equals(imageName));
 
+  }
+
+  private Flyway.DatabaseInstance getDatabaseInstance(ExtensionContext context) {
+    return findAnnotation(context.getTestClass(), Flyway.class)
+      .map(Flyway::databaseInstance)
+      .orElse(Flyway.DatabaseInstance.PER_TEST_METHOD);
   }
 
   private enum StartupType {

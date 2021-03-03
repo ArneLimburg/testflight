@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 René Frerichs
+ * Copyright 2020 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,28 +21,31 @@ import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.NoResultException;
 import javax.persistence.Persistence;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import space.testflight.ConfigProperty;
 import space.testflight.Flyway;
-import space.testflight.Flyway.DatabaseType;
 import space.testflight.model.Customer;
 
 @Flyway(
-  database = DatabaseType.POSTGRESQL,
-  testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
+  database = Flyway.DatabaseType.POSTGRESQL,
+  databaseInstance = Flyway.DatabaseInstance.PER_TEST_CLASS,
   configuration = {
-  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-})
-public class PostgreSqlTest {
+    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+  })
+@TestMethodOrder(MethodOrderer.Alphanumeric.class)
+public class PerTestClassTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
@@ -50,6 +53,11 @@ public class PostgreSqlTest {
   @BeforeAll
   static void createEntityManagerFactory() {
     entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", System.getProperties());
+
+    // accessing DB in BeforeEach works with PER_TEST_CLASS
+    List<Customer> customers =
+      entityManagerFactory.createEntityManager().createQuery("Select u from Customer u", Customer.class).getResultList();
+    assertThat(customers).hasSize(3);
   }
 
   @AfterAll
@@ -68,36 +76,26 @@ public class PostgreSqlTest {
   }
 
   @Test
-  void initialTest() {
-    Customer hans = new Customer("Hans", "hans@mail.de");
+  void aaainsertCustomer() {
+    assertThat(getHans()).isNull();
 
     entityManager.getTransaction().begin();
-    entityManager.persist(hans);
+    entityManager.persist(new Customer("Hans", "hans@mail.de"));
     entityManager.getTransaction().commit();
 
-    List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
-
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Hans")
-      .contains("Admin") // in flyway script
-      .contains("tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+    assertThat(getHans().getUserName()).isEqualTo("Hans");
   }
 
   @Test
-  void secondTest() {
-    Customer peter = new Customer("Peter", "peter@mail.de");
+  void bbbinsertedCustomerStillExists() {
+    assertThat(getHans().getUserName()).isEqualTo("Hans");
+  }
 
-    entityManager.getTransaction().begin();
-    entityManager.persist(peter);
-    entityManager.getTransaction().commit();
-
-    List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
-
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Peter")
-      .contains("Admin") // in flyway script
-      .contains("tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+  private Customer getHans() {
+    try {
+      return entityManager.createQuery("Select u from Customer u where u.userName = 'Hans'", Customer.class).getSingleResult();
+    } catch (NoResultException e) {
+      return null;
+    }
   }
 }

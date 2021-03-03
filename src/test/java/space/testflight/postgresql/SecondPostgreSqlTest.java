@@ -75,11 +75,11 @@ public class SecondPostgreSqlTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6);
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
+    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
+      .contains("Hans")
+      .contains("Admin") // in flyway script
+      .contains("tesdataUser") // in init script
+      .contains("tesdataUser2"); // in second init script
   }
 
   @Test
@@ -92,10 +92,10 @@ public class SecondPostgreSqlTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6);
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser")); // in init script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("tesdataUser2")); // in second init script
+    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
+      .contains("Peter")
+      .contains("Admin") // in flyway script
+      .contains("tesdataUser") // in init script
+      .contains("tesdataUser2"); // in second init script
   }
 }

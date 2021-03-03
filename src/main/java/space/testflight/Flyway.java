@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public @interface Flyway {
   DatabaseType database() default DatabaseType.POSTGRESQL;
   String dockerImage() default "";
+  DatabaseInstance databaseInstance() default DatabaseInstance.PER_TEST_METHOD;
   String[] testDataScripts() default {};
   ConfigProperty[] configuration() default {};
 
@@ -50,5 +51,11 @@ public @interface Flyway {
     public String getImage(String tag) {
       return getImage() + ":" + tag;
     }
+  }
+
+  enum DatabaseInstance {
+    PER_TEST_EXECUTION, // after @BeforeEach works with parameterized tests
+    PER_TEST_METHOD,    // before @BeforeEach
+    PER_TEST_CLASS      // before @BeforeAll
   }
 }
