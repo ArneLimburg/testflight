@@ -75,11 +75,8 @@ public class DefaultDatabaseTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Hans"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin2")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin3")); // in flyway script
+    assertThat(customers).hasSize(4)
+            .extracting(Customer::getUserName).containsExactlyInAnyOrder("Hans", "Admin", "Admin2", "Admin3"); // admins in flyway script
   }
 
   @Test
@@ -92,10 +89,7 @@ public class DefaultDatabaseTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(4);
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Peter"));
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin2")); // in flyway script
-    assertThat(customers).anyMatch(c -> c.getUserName().equals("Admin3")); // in flyway script
+    assertThat(customers).hasSize(4)
+            .extracting(Customer::getUserName).containsExactlyInAnyOrder("Peter", "Admin", "Admin2", "Admin3"); // admins in flyway script
   }
 }
