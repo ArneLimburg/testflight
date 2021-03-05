@@ -42,10 +42,10 @@ import space.testflight.model.Customer;
   database = Flyway.DatabaseType.POSTGRESQL,
   databaseInstance = Flyway.DatabaseInstance.PER_TEST_METHOD,
   configuration = {
-    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-  })
+  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+})
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
 public class PerTestMethodTest {
 
