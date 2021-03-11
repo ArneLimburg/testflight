@@ -147,10 +147,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    String currentMigrationTarget = getCurrentMigrationTarget();
+    Optional<String> currentMigrationTarget = getCurrentMigrationTarget();
     List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
     int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
-    String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget + testDataTagSuffix;
+    String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget.orElse("") + testDataTagSuffix;
 
     Store globalStore = getGlobalStore(context, tagName);
     Store classStore = getClassStore(context);
@@ -237,7 +237,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
-  private String getCurrentMigrationTarget() throws URISyntaxException, IOException {
+  private Optional<String> getCurrentMigrationTarget() throws URISyntaxException, IOException {
     org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure().load();
     Location[] locations = dryway.getConfiguration().getLocations();
     List<Path> migrations = new ArrayList<>();
@@ -251,9 +251,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     }
 
     Optional<Path> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
-    String latestMigrationFileName = latestMigration.get().getFileName().toString().split("__")[0].replace(".", "_");
-
-    return latestMigrationFileName;
+    return latestMigration.map(p -> p.getFileName().toString().split("__")[0].replace(".", "_"));
   }
 
   private ExtensionContext.Store getGlobalStore(ExtensionContext context, String tag) {
