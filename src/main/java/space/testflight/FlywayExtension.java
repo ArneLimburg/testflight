@@ -22,10 +22,14 @@ import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,17 +57,19 @@ import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
+import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
+import com.github.database.rider.core.api.connection.ConnectionHolder;
 import com.github.dockerjava.api.model.Image;
 
 import space.testflight.Flyway.DatabaseType;
 
 
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, BeforeTestExecutionCallback,
-  AfterTestExecutionCallback, AfterEachCallback, AfterAllCallback {
+  AfterTestExecutionCallback, AfterEachCallback, AfterAllCallback, TestInstancePostProcessor {
 
   public static final String TESTFLIGHT_PREFIX = "testflight-";
   private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
@@ -77,6 +83,9 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   private static final String JDBC_PORT = "jdbc.port";
   private static final String STORE_IMAGE = "image";
   private static final String STORE_CONTAINER = "container";
+  private static final String CONNECTION_HOLDER_FIELD_NAME = "connectionHolder";
+
+  private static Connection connection;
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
@@ -120,6 +129,51 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
       teardownDb(context, false);
     }
+  }
+
+  @Override
+  public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
+    Field connectionHolderField = locateConnectionHolderField(testInstance.getClass());
+    if (connectionHolderField != null) {
+      Store classStore = getClassStore(context);
+      Store globalStore = getGlobalStore(context, classStore.get(MIGRATION_TAG, String.class));
+
+      String jdbcUrl = globalStore.get(JDBC_URL, String.class);
+      String jdbcUsername = globalStore.get(JDBC_USERNAME, String.class);
+      String jdbcPassword = globalStore.get(JDBC_PASSWORD, String.class);
+
+      connectionHolderField.setAccessible(true);
+      connectionHolderField.set(testInstance, provideConnectionHolder(jdbcUrl, jdbcUsername, jdbcPassword));
+    }
+  }
+
+  private <T> Field locateConnectionHolderField(Class<T> clazz) throws NoSuchFieldException {
+    try {
+      return clazz.getDeclaredField(CONNECTION_HOLDER_FIELD_NAME);
+    } catch (NoSuchFieldException e) {
+      if (clazz.getSuperclass() == null) {
+        return null;
+      }
+      return locateConnectionHolderField(clazz.getSuperclass());
+    }
+  }
+
+  private ConnectionHolder provideConnectionHolder(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
+    return () -> (Connection)Proxy.newProxyInstance(
+      this.getClass().getClassLoader(),
+      new Class[] {Connection.class},
+      (proxy, method, args) -> method.invoke(getConnection(jdbcUrl, jdbcUsername, jdbcPassword), args));
+  }
+
+  private static Connection getConnection(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
+    try {
+      if (connection == null || connection.isClosed() || !connection.isValid(1)) {
+        connection = DriverManager.getConnection(jdbcUrl, jdbcUsername, jdbcPassword);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Failed to get new Connection from DriverManager", e);
+    }
+    return connection;
   }
 
   private void startupDb(ExtensionContext context, boolean useMethodLevelStore) {
@@ -258,7 +312,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     return context.getRoot().getStore(Namespace.create(FlywayExtension.class, tag));
   }
 
-  private ExtensionContext.Store getClassStore(ExtensionContext context) {
+  static ExtensionContext.Store getClassStore(ExtensionContext context) {
     return context.getStore(Namespace.create(context.getRequiredTestClass()));
   }
 
