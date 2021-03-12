@@ -1,0 +1,4 @@
+customer:
+  - id: 42
+    username: dbrider
+    email: db@rider.net

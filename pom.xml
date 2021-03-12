@@ -92,6 +92,11 @@
         <artifactId>postgresql</artifactId>
         <version>42.2.17</version>
       </dependency>
+      <dependency>
+        <groupId>com.github.database-rider</groupId>
+        <artifactId>rider-core</artifactId>
+        <version>1.23.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -117,6 +122,11 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.github.database-rider</groupId>
+      <artifactId>rider-core</artifactId>
       <optional>true</optional>
     </dependency>
 
@@ -158,6 +168,12 @@
       <groupId>com.mchange</groupId>
       <artifactId>c3p0</artifactId>
       <version>0.9.5.4</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.database-rider</groupId>
+      <artifactId>rider-junit5</artifactId>
+      <version>1.23.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
