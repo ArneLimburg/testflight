@@ -13,10 +13,10 @@ but you can also configure Testflight.Space to do it for every test execution.
 This may be interesting, when a method will be executed multiple times (i.e. for parameterized tests).
 
 ```
-@Flyway(databaseInstance = DatabaseInstance.PER_TEST_EXECUTION)
+@Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_EXECUTION)
 ```
 
-Or, when you just want to start it once per test class, you can use `DatabaseInstance.PER_TEST_CLASS`. 
+Or, when you just want to start it once per test class, you can use `DatabaseInstanceScope.PER_TEST_CLASS`. 
 
 ## Accessing the database
 
