@@ -82,42 +82,42 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   public void beforeAll(ExtensionContext context) throws Exception {
     initialize(context);
 
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_CLASS) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
       startupDb(context, false);
     }
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_METHOD) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_METHOD) {
       startupDb(context, true);
     }
   }
 
   @Override
   public void beforeTestExecution(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_EXECUTION) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_EXECUTION) {
       startupDb(context, true);
     }
   }
 
   @Override
   public void afterTestExecution(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_EXECUTION) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_EXECUTION) {
       teardownDb(context, true);
     }
   }
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_METHOD) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_METHOD) {
       teardownDb(context, true);
     }
   }
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstance.PER_TEST_CLASS) {
+    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
       teardownDb(context, false);
     }
   }
@@ -315,10 +315,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   }
 
-  private Flyway.DatabaseInstance getDatabaseInstance(ExtensionContext context) {
+  private Flyway.DatabaseInstanceScope getDatabaseInstance(ExtensionContext context) {
     return findAnnotation(context.getTestClass(), Flyway.class)
       .map(Flyway::databaseInstance)
-      .orElse(Flyway.DatabaseInstance.PER_TEST_METHOD);
+      .orElse(Flyway.DatabaseInstanceScope.PER_TEST_METHOD);
   }
 
   private enum StartupType {

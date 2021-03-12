@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public @interface Flyway {
   DatabaseType database() default DatabaseType.POSTGRESQL;
   String dockerImage() default "";
-  DatabaseInstance databaseInstance() default DatabaseInstance.PER_TEST_METHOD;
+  DatabaseInstanceScope databaseInstance() default DatabaseInstanceScope.PER_TEST_METHOD;
   String[] testDataScripts() default {};
   ConfigProperty[] configuration() default {};
 
@@ -53,7 +53,7 @@ public @interface Flyway {
     }
   }
 
-  enum DatabaseInstance {
+  enum DatabaseInstanceScope {
     PER_TEST_EXECUTION, // after @BeforeEach works with parameterized tests
     PER_TEST_METHOD,    // before @BeforeEach
     PER_TEST_CLASS      // before @BeforeAll

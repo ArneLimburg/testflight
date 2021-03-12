@@ -6,7 +6,7 @@ Testflight.Space is a JUnit 5 extension for flyway to mandate fast database test
 
 Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be started for every of your tests.
 
-## Configuring database startup
+## Configuring database lifecycle
 
 By default a fresh instance is started for every test method,
 but you can also configure Testflight.Space to do it for every test execution.

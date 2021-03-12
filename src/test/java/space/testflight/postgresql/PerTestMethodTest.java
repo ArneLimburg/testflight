@@ -40,7 +40,7 @@ import space.testflight.model.Customer;
 
 @Flyway(
   database = Flyway.DatabaseType.POSTGRESQL,
-  databaseInstance = Flyway.DatabaseInstance.PER_TEST_METHOD,
+  databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
   configuration = {
   @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
