@@ -86,6 +86,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   private static final String CONNECTION_HOLDER_FIELD_NAME = "connectionHolder";
   private static final String CONNECTION_HOLDER_TYPE_NAME = "com.github.database.rider.core.api.connection.ConnectionHolder";
   private static final String CONNECTION_HOLDER_IMPL_TYPE_NAME = "com.github.database.rider.core.connection.ConnectionHolderImpl";
+  private static final String CONNECTION_FIELD_NAME = "connection";
 
   private static Connection connection;
 
@@ -136,16 +137,24 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   @Override
   public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
     Field connectionHolderField = locateConnectionHolderField(testInstance.getClass());
+    Field connectionField = locateConnectionField(testInstance.getClass());
+
     if (connectionHolderField != null) {
-      Store classStore = getClassStore(context);
-      Store globalStore = getGlobalStore(context, classStore.get(MIGRATION_TAG, String.class));
-
-      String jdbcUrl = globalStore.get(JDBC_URL, String.class);
-      String jdbcUsername = globalStore.get(JDBC_USERNAME, String.class);
-      String jdbcPassword = globalStore.get(JDBC_PASSWORD, String.class);
-
-      injectConnectionHolder(testInstance, connectionHolderField, jdbcUrl, jdbcUsername, jdbcPassword);
+      injectConnectionHolder(testInstance, connectionHolderField, getJdbcConfig(context));
+    } else if (connectionField != null) {
+      injectConnection(testInstance, connectionField, getJdbcConfig(context));
     }
+  }
+
+  private JdbcConfig getJdbcConfig(ExtensionContext context) {
+    Store classStore = getClassStore(context);
+    Store globalStore = getGlobalStore(context, classStore.get(MIGRATION_TAG, String.class));
+
+    String jdbcUrl = globalStore.get(JDBC_URL, String.class);
+    String jdbcUsername = globalStore.get(JDBC_USERNAME, String.class);
+    String jdbcPassword = globalStore.get(JDBC_PASSWORD, String.class);
+
+    return new JdbcConfig(jdbcUrl, jdbcUsername, jdbcPassword);
   }
 
   private <T> Field locateConnectionHolderField(Class<T> clazz) {
@@ -163,14 +172,34 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     return null;
   }
 
-  private void injectConnectionHolder(Object testInstance, Field connectionHolderField, String jdbcUrl, String jdbcUsername,
-    String jdbcPassword) throws ReflectiveOperationException {
+  private <T> Field locateConnectionField(Class<T> clazz) {
+    try {
+      Field declaredField = clazz.getDeclaredField(CONNECTION_FIELD_NAME);
+      if (declaredField.getType() == Connection.class && declaredField.isAnnotationPresent(TestResource.class)) {
+        return declaredField;
+      }
+    } catch (NoSuchFieldException e) {
+      if (clazz.getSuperclass() != null) {
+        return locateConnectionHolderField(clazz.getSuperclass());
+      }
+    }
+    return null;
+  }
+
+  private void injectConnectionHolder(Object testInstance, Field connectionHolderField, JdbcConfig jdbcConfig)
+      throws ReflectiveOperationException {
     Class<?> connectionHolderImplClass = connectionHolderField.getType().getClassLoader().loadClass(CONNECTION_HOLDER_IMPL_TYPE_NAME);
     Constructor<?> constructor = connectionHolderImplClass.getConstructor(Connection.class);
-    Object connectionHolder = constructor.newInstance(getProxyConnection(jdbcUrl, jdbcUsername, jdbcPassword));
+    Object connectionHolder = constructor.newInstance(
+      getProxyConnection(jdbcConfig.jdbcUrl, jdbcConfig.jdbcUsername, jdbcConfig.jdbcPassword));
 
     connectionHolderField.setAccessible(true);
     connectionHolderField.set(testInstance, connectionHolder);
+  }
+
+  private void injectConnection(Object testInstance, Field connectionField, JdbcConfig jdbcConfig) throws ReflectiveOperationException {
+    connectionField.setAccessible(true);
+    connectionField.set(testInstance, getProxyConnection(jdbcConfig.jdbcUrl, jdbcConfig.jdbcUsername, jdbcConfig.jdbcPassword));
   }
 
   private Connection getProxyConnection(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
@@ -389,5 +418,17 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   private enum StartupType {
     SLOW, FAST;
+  }
+
+  private static class JdbcConfig {
+    String jdbcUrl;
+    String jdbcUsername;
+    String jdbcPassword;
+
+    JdbcConfig(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
+      this.jdbcUrl = jdbcUrl;
+      this.jdbcUsername = jdbcUsername;
+      this.jdbcPassword = jdbcPassword;
+    }
   }
 }
