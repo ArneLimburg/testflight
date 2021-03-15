@@ -77,6 +77,11 @@ public class DbRiderWithFieldInSuperClassTest extends AbstractDbRiderEnabledTest
 
 
   @Test
+  void connectionHolderFieldIsInjected() {
+    assertThat(connectionHolder).isNotNull();
+  }
+
+  @Test
   void deleteUser() {
     assertThatUserWereCreatedByDbRider();
 

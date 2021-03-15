@@ -13,14 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.dbrider;
+package space.testflight;
 
-import com.github.database.rider.core.api.connection.ConnectionHolder;
+import static java.lang.annotation.ElementType.FIELD;
 
-import space.testflight.TestResource;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public abstract class AbstractDbRiderEnabledTest {
-
-  @TestResource
-  protected ConnectionHolder connectionHolder;  // dbRider accesses this field with reflections
+/**
+ * {@code @TestResource} is used to signal that the annotated field in a test class
+ * should be injected with a DBRider ConnectionHolder by testflight.
+ */
+@Target({FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface TestResource {
 }
