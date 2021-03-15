@@ -37,6 +37,7 @@ import com.github.database.rider.junit5.api.DBRider;
 
 import space.testflight.ConfigProperty;
 import space.testflight.Flyway;
+import space.testflight.TestResource;
 import space.testflight.model.Customer;
 
 @DBRider
@@ -54,6 +55,7 @@ public class DbRiderTest {
 
   private static EntityManagerFactory entityManagerFactory;
 
+  @TestResource
   private ConnectionHolder connectionHolder;  // dbRider accesses this field with reflections
 
   private EntityManager entityManager;
@@ -79,6 +81,11 @@ public class DbRiderTest {
     entityManager.close();
   }
 
+
+  @Test
+  void connectionHolderFieldIsInjected() {
+    assertThat(connectionHolder).isNotNull();
+  }
 
   @Test
   void deleteUser() {

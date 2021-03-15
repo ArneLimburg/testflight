@@ -22,6 +22,7 @@ import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.net.URISyntaxException;
@@ -62,7 +63,6 @@ import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import com.github.database.rider.core.api.connection.ConnectionHolder;
 import com.github.dockerjava.api.model.Image;
 
 import space.testflight.Flyway.DatabaseType;
@@ -84,6 +84,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   private static final String STORE_IMAGE = "image";
   private static final String STORE_CONTAINER = "container";
   private static final String CONNECTION_HOLDER_FIELD_NAME = "connectionHolder";
+  private static final String CONNECTION_HOLDER_TYPE_NAME = "com.github.database.rider.core.api.connection.ConnectionHolder";
+  private static final String CONNECTION_HOLDER_IMPL_TYPE_NAME = "com.github.database.rider.core.connection.ConnectionHolderImpl";
 
   private static Connection connection;
 
@@ -142,36 +144,46 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
       String jdbcUsername = globalStore.get(JDBC_USERNAME, String.class);
       String jdbcPassword = globalStore.get(JDBC_PASSWORD, String.class);
 
-      connectionHolderField.setAccessible(true);
-      connectionHolderField.set(testInstance, provideConnectionHolder(jdbcUrl, jdbcUsername, jdbcPassword));
+      injectConnectionHolder(testInstance, connectionHolderField, jdbcUrl, jdbcUsername, jdbcPassword);
     }
   }
 
-  private <T> Field locateConnectionHolderField(Class<T> clazz) throws NoSuchFieldException {
+  private <T> Field locateConnectionHolderField(Class<T> clazz) {
     try {
-      return clazz.getDeclaredField(CONNECTION_HOLDER_FIELD_NAME);
-    } catch (NoSuchFieldException e) {
-      if (clazz.getSuperclass() == null) {
-        return null;
+      Field declaredField = clazz.getDeclaredField(CONNECTION_HOLDER_FIELD_NAME);
+      if (declaredField.getType().getName().equals(CONNECTION_HOLDER_TYPE_NAME)
+        && declaredField.isAnnotationPresent(TestResource.class)) {
+        return declaredField;
       }
-      return locateConnectionHolderField(clazz.getSuperclass());
+    } catch (NoSuchFieldException e) {
+      if (clazz.getSuperclass() != null) {
+        return locateConnectionHolderField(clazz.getSuperclass());
+      }
     }
+    return null;
   }
 
-  private ConnectionHolder provideConnectionHolder(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
-    return () -> (Connection)Proxy.newProxyInstance(
+  private void injectConnectionHolder(Object testInstance, Field connectionHolderField, String jdbcUrl, String jdbcUsername,
+    String jdbcPassword) throws ReflectiveOperationException {
+    Class<?> connectionHolderImplClass = connectionHolderField.getType().getClassLoader().loadClass(CONNECTION_HOLDER_IMPL_TYPE_NAME);
+    Constructor<?> constructor = connectionHolderImplClass.getConstructor(Connection.class);
+    Object connectionHolder = constructor.newInstance(getProxyConnection(jdbcUrl, jdbcUsername, jdbcPassword));
+
+    connectionHolderField.setAccessible(true);
+    connectionHolderField.set(testInstance, connectionHolder);
+  }
+
+  private Connection getProxyConnection(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
+    return (Connection)Proxy.newProxyInstance(
       this.getClass().getClassLoader(),
       new Class[] {Connection.class},
-      (proxy, method, args) -> method.invoke(getConnection(jdbcUrl, jdbcUsername, jdbcPassword), args));
+      (proxy, method, args) -> method.invoke(getConnection(jdbcUrl, jdbcUsername, jdbcPassword), args)
+    );
   }
 
-  private static Connection getConnection(String jdbcUrl, String jdbcUsername, String jdbcPassword) {
-    try {
-      if (connection == null || connection.isClosed() || !connection.isValid(1)) {
-        connection = DriverManager.getConnection(jdbcUrl, jdbcUsername, jdbcPassword);
-      }
-    } catch (SQLException e) {
-      throw new RuntimeException("Failed to get new Connection from DriverManager", e);
+  private static Connection getConnection(String jdbcUrl, String jdbcUsername, String jdbcPassword) throws SQLException {
+    if (connection == null || connection.isClosed() || !connection.isValid(1)) {
+      connection = DriverManager.getConnection(jdbcUrl, jdbcUsername, jdbcPassword);
     }
     return connection;
   }
