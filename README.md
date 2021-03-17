@@ -45,12 +45,12 @@ The following resources may be injected:
 
 | type                | field or parameter name | injected resource                  |
 | ------------------- | ----------------------- | ---------------------------------- |
-| java.sql.Connection | <any>                   | a connection to the database       |
-| com.github.database.rider.core.api.connection.ConnectionHolder | <any> | a connection holder to be picked up by DBRider |
-| java.net.URI        | <any>                   | the uri of the database connection |
+| java.sql.Connection | \<any\>                 | a connection to the database       |
+| com.github.database.rider.core.api.connection.ConnectionHolder | \<any\> | a connection holder to be picked up by DBRider |
+| java.net.URI        | \<any\>                 | the uri of the database connection |
 | java.lang.String    | `jdbcUrl` or `url`            | the url of the database connection |
-| java.lang.String    | `userName`, `username` or `user`  | the database user |
-| java.lang.String    | `password`                  | the database password |
+| java.lang.String    | `jdbcUser`, `userName`, `username` or `user` | the database user |
+| java.lang.String    | `jdbcPassword` or `password`      | the database password |
 
 ## Supported databases
 
