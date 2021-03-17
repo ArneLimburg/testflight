@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Roman Ness
+ * Copyright 2021 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.dbrider;
+package space.testflight.injection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.sql.Connection;
-
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import space.testflight.ConfigProperty;
 import space.testflight.Flyway;
+import space.testflight.TestResource;
 
+@Tag("failing") // this test intentionally fails to test failure messages. It is used in FailingInjectionTest
 @Flyway(
   database = Flyway.DatabaseType.POSTGRESQL,
   databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
@@ -32,12 +33,13 @@ import space.testflight.Flyway;
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
-public class ConnectionFieldWithoutAnnotationTest {
+public class FailingFieldInjectionTest {
 
-  private Connection connection;  // field is missing TestResource and is ignored
+  @TestResource
+  private String connection;
 
   @Test
-  void connectionFieldIsIgnoredBecauseOfWrongType() {
-    assertThat(connection).isNull();
+  void connectionIsInjected() {
+    assertThat(connection).isNotNull();
   }
 }

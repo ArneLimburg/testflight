@@ -38,6 +38,19 @@ You can change the property names via:
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
 ```
+## Injection of resources
+
+Add `@TestResource` to a field or method parameter to enable injection by Testflight.Space.
+The following resources may be injected:
+
+| type                | field or parameter name | injected resource                  |
+| ------------------- | ----------------------- | ---------------------------------- |
+| java.sql.Connection | <any>                   | a connection to the database       |
+| com.github.database.rider.core.api.connection.ConnectionHolder | <any> | a connection holder to be picked up by DBRider |
+| java.net.URI        | <any>                   | the uri of the database connection |
+| java.lang.String    | `jdbcUrl` or `url`            | the url of the database connection |
+| java.lang.String    | `userName`, `username` or `user`  | the database user |
+| java.lang.String    | `password`                  | the database password |
 
 ## Supported databases
 
@@ -59,7 +72,7 @@ and manages database access like
 [Spring Testing](https://docs.spring.io/spring-framework/docs/current/reference/html/testing.html) or
 [Quarkus Testing](https://quarkus.io/guides/getting-started-testing) there are two things to consider.
 
-### JUnit 5 Extension ordering
+### JUnit 5 extension ordering
 
 You first have to ensure, that Testflight.Space starts first,
 so that the database is already there, when the container tries to access it.
@@ -99,7 +112,8 @@ c3p0.testConnectionOnCheckout=true
 ## Integration with Hibernate 
 
 The easiest way to integrate Testflight.Space with a test where Hibernate is used
-(being it standalone or in a container) is to add the Hibernate c3p0 support with
+(being it standalone or in a container) is to add the Hibernate c3p0 support
+to your maven pom with
 
 ```
 <dependency>
@@ -111,6 +125,25 @@ The easiest way to integrate Testflight.Space with a test where Hibernate is use
 ```
 
 Then you can configure c3p0 like described above.
+
+## Integration with Database Rider
+
+The JUnit 5 extension of Database Rider (DBRider) is an optional dependency of Testflight.Space.
+So you may use Database Rider by simply adding the following to your maven pom:
+
+```
+<dependency>
+  <groupId>com.github.database-rider</groupId>
+  <artifactId>rider-junit5</groupId>
+</dependency>
+```
+
+After that, please ensure, that the `@Flyway` extension is ordered before the `@DBRider` extension
+(see [JUnit 5 extension ordering](#junit-5-extension-ordering)).
+Providing the Testflight.Space database connection to DBRider
+is as easy as adding a field of type `com.github.database.rider.core.api.connection.ConnectionHolder`with name `connectionHolder`
+to your test and annotating it with `@TestResource`. Testflight.Space then will inject that `ConnectionHolder`
+and Database Rider will pick it up.
 
 ## Why is Testflight.Space so fast?
 

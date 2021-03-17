@@ -16,6 +16,7 @@
 package space.testflight;
 
 import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.PARAMETER;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,7 +26,7 @@ import java.lang.annotation.Target;
  * {@code @TestResource} is used to signal that the annotated field in a test class
  * should be injected with a DBRider ConnectionHolder by testflight.
  */
-@Target({FIELD})
+@Target({FIELD, PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TestResource {
 }

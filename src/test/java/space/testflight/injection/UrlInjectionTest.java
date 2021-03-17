@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Roman Ness
+ * Copyright 2021 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.dbrider;
+package space.testflight.injection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.sql.Connection;
+import java.net.URI;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,13 +33,19 @@ import space.testflight.TestResource;
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
-public class ConnectionFieldInjectionTest {
+public class UrlInjectionTest {
 
   @TestResource
-  private Connection connection;
+  private String jdbcUrl;
+  @TestResource
+  private String jdbcUser;
+  @TestResource
+  private String jdbcPassword;
 
   @Test
-  void connectionHolderFieldIsIgnoredBecauseOfWrongType() {
-    assertThat(connection).isNotNull();
+  void injectConnectionString(@TestResource URI uri) {
+    assertThat(jdbcUrl).isEqualTo(uri.toString());
+    assertThat(jdbcUser).isEqualTo(System.getProperty("javax.persistence.jdbc.user"));
+    assertThat(jdbcPassword).isEqualTo(System.getProperty("javax.persistence.jdbc.password"));
   }
 }

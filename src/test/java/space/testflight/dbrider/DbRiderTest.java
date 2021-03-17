@@ -40,9 +40,6 @@ import space.testflight.Flyway;
 import space.testflight.TestResource;
 import space.testflight.model.Customer;
 
-@DBRider
-@DBUnit(schema = "public", caseInsensitiveStrategy = Orthography.LOWERCASE)
-@DataSet(value = "dbrider/customers.yml", strategy = SeedStrategy.INSERT)
 @Flyway(
   database = Flyway.DatabaseType.POSTGRESQL,
   databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
@@ -51,6 +48,9 @@ import space.testflight.model.Customer;
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
+@DataSet(value = "dbrider/customers.yml", strategy = SeedStrategy.INSERT)
+@DBUnit(schema = "public", caseInsensitiveStrategy = Orthography.LOWERCASE)
+@DBRider
 public class DbRiderTest {
 
   private static EntityManagerFactory entityManagerFactory;

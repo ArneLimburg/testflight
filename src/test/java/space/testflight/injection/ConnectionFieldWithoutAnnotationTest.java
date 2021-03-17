@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.dbrider;
+package space.testflight.injection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.sql.Connection;
 
 import org.junit.jupiter.api.Test;
 
 import space.testflight.ConfigProperty;
 import space.testflight.Flyway;
-import space.testflight.TestResource;
 
 @Flyway(
   database = Flyway.DatabaseType.POSTGRESQL,
@@ -31,13 +32,12 @@ import space.testflight.TestResource;
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
-public class ConnectionHolderFieldWithWrongTypeTest {
+public class ConnectionFieldWithoutAnnotationTest {
 
-  @TestResource
-  private Object connectionHolder;  // field has wrong type and is ignored
+  private Connection connection;  // field is missing TestResource and is ignored
 
   @Test
-  void connectionHolderFieldIsIgnoredBecauseOfWrongType() {
-    assertThat(connectionHolder).isNull();
+  void connectionFieldIsIgnoredBecauseOfWrongType() {
+    assertThat(connection).isNull();
   }
 }

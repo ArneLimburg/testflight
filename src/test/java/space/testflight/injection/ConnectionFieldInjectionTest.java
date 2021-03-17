@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.dbrider;
+package space.testflight.injection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.sql.Connection;
 
 import org.junit.jupiter.api.Test;
 
@@ -31,13 +33,13 @@ import space.testflight.TestResource;
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
 })
-public class ConnectionFieldWithWrongTypeTest {
+public class ConnectionFieldInjectionTest {
 
   @TestResource
-  private Object connection;  // field has wrong type and is ignored
+  private Connection connection;
 
   @Test
-  void connectionFieldIsIgnoredBecauseOfWrongType() {
-    assertThat(connection).isNull();
+  void connectionHolderFieldIsIgnoredBecauseOfWrongType() {
+    assertThat(connection).isNotNull();
   }
 }
