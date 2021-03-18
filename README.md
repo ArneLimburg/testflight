@@ -18,6 +18,17 @@ This may be interesting, when a method will be executed multiple times (i.e. for
 
 Or, when you just want to start it once per test class, you can use `DatabaseInstanceScope.PER_TEST_CLASS`. 
 
+## Configuration of Flyway
+
+You can add custom Flyway configuration via the annotation like
+
+```
+@Flyway(configuration = {
+  @ConfigProperty(key = "flyway.locations", value = "..."),
+  ...
+})
+```
+
 ## Accessing the database
 
 After starting the database Testflight.Space will inject the connection properties into Java system properties.

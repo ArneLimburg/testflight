@@ -16,8 +16,11 @@
 package space.testflight;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.stream;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toMap;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
 import java.io.File;
@@ -188,7 +191,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (!existsImage(image)) {
       container = createContainer(context, StartupType.SLOW);
       container.start();
-      prefillDatabase(container, loadableTestDataResources);
+      prefillDatabase(container, loadableTestDataResources, configuration);
       container.tag(tagName);
       globalStore.put(STORE_IMAGE, image);
     } else {
@@ -204,9 +207,17 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     setSystemProperties(configuration, globalStore);
   }
 
-  private void prefillDatabase(JdbcDatabaseContainer<?> container, List<LoadableResource> loadableTestDataResources) throws SQLException {
+  private void prefillDatabase(
+    JdbcDatabaseContainer<?> container,
+    List<LoadableResource> loadableTestDataResources,
+    Optional<Flyway> configuration) throws SQLException {
     org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword()).load();
+      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
+      .configuration(configuration
+      .map(Flyway::configuration)
+      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
+      .orElse(emptyMap()))
+      .load();
     flyway.migrate();
 
     Configuration flywayConfiguration = flyway.getConfiguration();
@@ -268,7 +279,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     Location[] locations = dryway.getConfiguration().getLocations();
     List<Path> migrations = new ArrayList<>();
     for (Location location : locations) {
-      URL resource = getClass().getClassLoader().getResource(location.getPath());
+      URL resource = Thread.currentThread().getContextClassLoader().getResource(location.getPath());
       File file = new File(resource.toURI());
 
       try (Stream<Path> paths = Files.walk(file.toPath())) {
