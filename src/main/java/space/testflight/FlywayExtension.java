@@ -46,6 +46,7 @@ import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 import org.flywaydb.core.internal.parser.ParsingContext;
 import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
+import org.flywaydb.core.internal.resource.filesystem.FileSystemResource;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -176,7 +177,13 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    Optional<String> currentMigrationTarget = getCurrentMigrationTarget();
+    org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure()
+      .configuration(configuration
+      .map(Flyway::configuration)
+      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
+      .orElse(emptyMap()))
+      .load();
+    Optional<String> currentMigrationTarget = getCurrentMigrationTarget(dryway);
     List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
     int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
     String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget.orElse("") + testDataTagSuffix;
@@ -191,7 +198,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (!existsImage(image)) {
       container = createContainer(context, StartupType.SLOW);
       container.start();
-      prefillDatabase(container, loadableTestDataResources, configuration);
+      org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+        .configuration(dryway.getConfiguration())
+        .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
+        .load();
+
+      prefillDatabase(container, loadableTestDataResources, flyway);
       container.tag(tagName);
       globalStore.put(STORE_IMAGE, image);
     } else {
@@ -210,14 +222,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   private void prefillDatabase(
     JdbcDatabaseContainer<?> container,
     List<LoadableResource> loadableTestDataResources,
-    Optional<Flyway> configuration) throws SQLException {
-    org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-      .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
-      .configuration(configuration
-      .map(Flyway::configuration)
-      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
-      .orElse(emptyMap()))
-      .load();
+    org.flywaydb.core.Flyway flyway) throws SQLException {
     flyway.migrate();
 
     Configuration flywayConfiguration = flyway.getConfiguration();
@@ -236,8 +241,16 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (configuration.isPresent()) {
       String[] testDataScripts = configuration.get().testDataScripts();
       for (String testDataScript : testDataScripts) {
-        LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
-        loadableResources.add(loadableResource);
+        Location scriptLocation = new Location(testDataScript);
+        if (scriptLocation.isClassPath()) {
+          LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
+          loadableResources.add(loadableResource);
+        } else if (scriptLocation.isFileSystem()) {
+          LoadableResource loadableResource = new FileSystemResource(null, scriptLocation.getPath(), UTF_8);
+          loadableResources.add(loadableResource);
+        } else {
+          throw new IllegalStateException("Unsupported test data location " + scriptLocation);
+        }
       }
     }
 
@@ -274,15 +287,20 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
-  private Optional<String> getCurrentMigrationTarget() throws URISyntaxException, IOException {
-    org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure().load();
+  private Optional<String> getCurrentMigrationTarget(org.flywaydb.core.Flyway dryway) throws URISyntaxException, IOException {
     Location[] locations = dryway.getConfiguration().getLocations();
     List<Path> migrations = new ArrayList<>();
     for (Location location : locations) {
-      URL resource = Thread.currentThread().getContextClassLoader().getResource(location.getPath());
-      File file = new File(resource.toURI());
-
-      try (Stream<Path> paths = Files.walk(file.toPath())) {
+      File directory;
+      if (location.isClassPath()) {
+        URL resource = getClass().getClassLoader().getResource(location.getPath());
+        directory = new File(resource.toURI());
+      } else if (location.isFileSystem()) {
+        directory = new File(location.getPath());
+      } else {
+        throw new IllegalStateException("Unsupported location " + location);
+      }
+      try (Stream<Path> paths = Files.walk(directory.toPath())) {
         migrations.addAll(paths.filter(Files::isRegularFile).collect(Collectors.toList()));
       }
     }
