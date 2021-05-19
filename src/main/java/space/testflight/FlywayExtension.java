@@ -23,12 +23,8 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,17 +32,20 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.flywaydb.core.api.Location;
 import org.flywaydb.core.api.configuration.Configuration;
+import org.flywaydb.core.api.migration.JavaMigration;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 import org.flywaydb.core.internal.parser.ParsingContext;
 import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
 import org.flywaydb.core.internal.resource.filesystem.FileSystemResource;
+import org.flywaydb.core.internal.scanner.LocationScannerCache;
+import org.flywaydb.core.internal.scanner.ResourceNameCache;
+import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
+import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -92,21 +91,21 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     initialize(context);
 
     if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
-      startupDb(context, false);
+      startDatabase(context, false);
     }
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_METHOD) {
-      startupDb(context, true);
+      startDatabase(context, true);
     }
   }
 
   @Override
   public void beforeTestExecution(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_EXECUTION) {
-      startupDb(context, true);
+      startDatabase(context, true);
     }
   }
 
@@ -152,7 +151,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     }
   }
 
-  private void startupDb(ExtensionContext context, boolean useMethodLevelStore) {
+  private void startDatabase(ExtensionContext context, boolean useMethodLevelStore) {
     String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
     JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
     if (!container.isRunning()) {
@@ -288,25 +287,30 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   }
 
   private Optional<String> getCurrentMigrationTarget(org.flywaydb.core.Flyway dryway) throws URISyntaxException, IOException {
-    Location[] locations = dryway.getConfiguration().getLocations();
-    List<Path> migrations = new ArrayList<>();
+    Configuration configuration = dryway.getConfiguration();
+    Location[] locations = configuration.getLocations();
+    List<LoadableResource> migrations = new ArrayList<>();
+
+    FileSystemScanner fileSystemScanner = new FileSystemScanner(configuration.getEncoding(), false);
     for (Location location : locations) {
-      File directory;
       if (location.isClassPath()) {
-        URL resource = getClass().getClassLoader().getResource(location.getPath());
-        directory = new File(resource.toURI());
+        ClassPathScanner<JavaMigration> scanner = new ClassPathScanner<JavaMigration>(
+          JavaMigration.class,
+          configuration.getClassLoader(),
+          configuration.getEncoding(),
+          location,
+          new ResourceNameCache(),
+          new LocationScannerCache());
+        migrations.addAll(scanner.scanForResources());
       } else if (location.isFileSystem()) {
-        directory = new File(location.getPath());
+        migrations.addAll(fileSystemScanner.scanForResources(location));
       } else {
         throw new IllegalStateException("Unsupported location " + location);
       }
-      try (Stream<Path> paths = Files.walk(directory.toPath())) {
-        migrations.addAll(paths.filter(Files::isRegularFile).collect(Collectors.toList()));
-      }
     }
 
-    Optional<Path> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
-    return latestMigration.map(p -> p.getFileName().toString().split("__")[0].replace(".", "_"));
+    Optional<LoadableResource> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
+    return latestMigration.map(p -> p.getFilename().toString().split("__")[0].replace(".", "_"));
   }
 
   static ExtensionContext.Store getGlobalStore(ExtensionContext context) {
