@@ -65,7 +65,7 @@ The following resources may be injected:
 
 ## Supported databases
 
-Flyway extension internally uses Testcontainers to start databases so every database that is supported by Testcontainers will be supported eventually. Currently only PostgreSQL is supported.
+Flyway extension internally uses Testcontainers to start databases so every database that is supported by Testcontainers will be supported eventually. Currently only PostgreSQL and MySQL are supported.
 
 ## Initial test data
 

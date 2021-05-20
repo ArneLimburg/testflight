@@ -17,6 +17,7 @@ package space.testflight;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.TYPE;
+import static org.testcontainers.containers.MySQLContainer.NAME;
 import static org.testcontainers.containers.PostgreSQLContainer.IMAGE;
 
 import java.lang.annotation.Retention;
@@ -36,7 +37,8 @@ public @interface Flyway {
   ConfigProperty[] configuration() default {};
 
   enum DatabaseType {
-    POSTGRESQL(IMAGE);
+    POSTGRESQL(IMAGE),
+    MYSQL(NAME);
 
     private String image;
 

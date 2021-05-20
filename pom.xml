@@ -5,7 +5,7 @@
 
   <groupId>space.testflight</groupId>
   <artifactId>testflight</artifactId>
-  <version>0.4.3-SNAPSHOT</version>
+  <version>0.5.0-SNAPSHOT</version>
 
   <name>Testflight.Space</name>
   <url>http://www.testflight.space</url>
@@ -97,6 +97,11 @@
         <artifactId>rider-junit5</artifactId>
         <version>1.23.0</version>
       </dependency>
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.22</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -122,6 +127,16 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mysql</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -368,7 +383,7 @@
                     <limit>
                       <counter>BRANCH</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.94</minimum>
+                      <minimum>0.93</minimum>
                     </limit>
                     <limit>
                       <counter>COMPLEXITY</counter>

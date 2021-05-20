@@ -36,8 +36,10 @@ import java.util.Optional;
 import org.flywaydb.core.api.Location;
 import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.migration.JavaMigration;
+import org.flywaydb.core.internal.database.mysql.MySQLParser;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
+import org.flywaydb.core.internal.parser.Parser;
 import org.flywaydb.core.internal.parser.ParsingContext;
 import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
@@ -174,7 +176,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     }
   }
 
-  private <C extends JdbcDatabaseContainer & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure()
       .configuration(configuration
@@ -202,7 +204,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
         .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
         .load();
 
-      prefillDatabase(container, loadableTestDataResources, flyway);
+      prefillDatabase(container, type, loadableTestDataResources, flyway);
       container.tag(tagName);
       globalStore.put(STORE_IMAGE, image);
     } else {
@@ -220,6 +222,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   private void prefillDatabase(
     JdbcDatabaseContainer<?> container,
+    DatabaseType type,
     List<LoadableResource> loadableTestDataResources,
     org.flywaydb.core.Flyway flyway) throws SQLException {
     flyway.migrate();
@@ -227,10 +230,20 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     Configuration flywayConfiguration = flyway.getConfiguration();
     ParsingContext parsingContext = new ParsingContext();
     JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
-    PostgreSQLParser postgreSqlParser = new PostgreSQLParser(flywayConfiguration, parsingContext);
+    Parser parser;
+    switch (type) {
+      case POSTGRESQL:
+        parser = new PostgreSQLParser(flywayConfiguration, parsingContext);
+        break;
+      case MYSQL:
+        parser = new MySQLParser(flywayConfiguration, parsingContext);
+        break;
+      default:
+        throw new IllegalStateException("Unsupported database type " + type);
+    }
 
     for (LoadableResource testDataScript : loadableTestDataResources) {
-      SqlStatementIterator parse = postgreSqlParser.parse(testDataScript);
+      SqlStatementIterator parse = parser.parse(testDataScript);
       parse.forEachRemaining(p -> p.execute(jdbcTemplate));
     }
   }
@@ -330,16 +343,19 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
   }
 
-  private <C extends JdbcDatabaseContainer & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     C container;
     if (!configuration.isPresent()) {
-      container = (C)createPostgreSqlContainer(context, startup);
+      container = createPostgreSqlContainer(context, startup);
     } else {
       Flyway flywayConfiguration = configuration.get();
       switch (flywayConfiguration.database()) {
         case POSTGRESQL:
-          container = (C)createPostgreSqlContainer(context, startup);
+          container = createPostgreSqlContainer(context, startup);
+          break;
+        case MYSQL:
+          container = createMySqlContainer(context, startup);
           break;
         default:
           throw new IllegalStateException("Database type " + flywayConfiguration.database() + " is not supported");
@@ -351,7 +367,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     return container;
   }
 
-  private InContainerDataPostgreSqlContainer createPostgreSqlContainer(ExtensionContext context, StartupType startup) {
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createPostgreSqlContainer(
+    ExtensionContext context, StartupType startup) {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
     Optional<String> imageName = ofNullable(getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
@@ -363,7 +380,22 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (startup == StartupType.FAST) {
       container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
     }
-    return container;
+    return (C)container;
+  }
+
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createMySqlContainer(ExtensionContext context, StartupType startup) {
+    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
+    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
+    Optional<String> imageName = ofNullable(getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
+    imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
+
+    InContainerDataMySqlContainer container = imageName
+      .map(name -> new InContainerDataMySqlContainer(name))
+      .orElseGet(() -> new InContainerDataMySqlContainer());
+    if (startup == StartupType.FAST) {
+      container.setWaitStrategy(Wait.forLogMessage("mysqld: ready for connections", 1));
+    }
+    return (C)container;
   }
 
   private boolean existsImage(String imageName) {
