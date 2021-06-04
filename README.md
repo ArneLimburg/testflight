@@ -40,7 +40,21 @@ space.testflight.jdbc.username
 space.testflight.jdbc.password
 ```
 
-You can change the property names via:
+## Integration with JPA
+
+Override the properties of your `persistence.xml` by supplying a map on creation of your `EntityManagerFactory`:
+
+```
+Map<String, String> persistenceProperties = new HashMap<>();
+persistenceProperties.put("javax.persistence.jdbc.url", System.getProperty("space.testflight.jdbc.url"));
+persistenceProperties.put("javax.persistence.jdbc.user", System.getProperty("space.testflight.jdbc.username"));
+persistenceProperties.put("javax.persistence.jdbc.password", System.getProperty("space.testflight.jdbc.password"));
+EntityManagerFactory emf = Persistence.createEntityManager(..., persistenceProperties);
+```
+
+## Injecting the JDBC properties into other system properties
+
+You can change the system property names via:
 
 ```
 @Flyway(configuration = {
