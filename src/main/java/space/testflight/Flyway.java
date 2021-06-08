@@ -37,13 +37,15 @@ public @interface Flyway {
   ConfigProperty[] configuration() default {};
 
   enum DatabaseType {
-    POSTGRESQL(IMAGE),
-    MYSQL(NAME);
+    POSTGRESQL(IMAGE, ".*database system is ready to accept connections.*\\s"),
+    MYSQL(NAME, "mysqld: ready for connections");
 
     private String image;
+    private String startupLogMessage;
 
-    DatabaseType(String databaseImage) {
+    DatabaseType(String databaseImage, String startupLogMessage) {
       this.image = databaseImage;
+      this.startupLogMessage = startupLogMessage;
     }
 
     public String getImage() {
@@ -52,6 +54,10 @@ public @interface Flyway {
 
     public String getImage(String tag) {
       return getImage() + ":" + tag;
+    }
+
+    String getStartupLogMessage() {
+      return startupLogMessage;
     }
   }
 

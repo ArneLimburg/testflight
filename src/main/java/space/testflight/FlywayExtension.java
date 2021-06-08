@@ -18,8 +18,6 @@ package space.testflight;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyMap;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 
@@ -64,7 +62,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 import com.github.dockerjava.api.model.Image;
 
@@ -77,16 +74,16 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   static final String JDBC_URL = "space.testflight.jdbc.url";
   static final String JDBC_USERNAME = "space.testflight.jdbc.username";
   static final String JDBC_PASSWORD = "space.testflight.jdbc.password";
-  private static final String MIGRATION_TAG = "migration.tag";
-  private static final String POSTGRESQL_STARTUP_LOG_MESSAGE = ".*database system is ready to accept connections.*\\s";
+  static final String MIGRATION_TAG = "migration.tag";
+  static final String STORE_IMAGE = "image";
+  static final String STORE_CONTAINER = "container";
   private static final String JDBC_URL_PROPERTY = "space.testflight.jdbc.url.property";
   private static final String JDBC_USERNAME_PROPERTY = "space.testflight.jdbc.username.property";
   private static final String JDBC_PASSWORD_PROPERTY = "space.testflight.jdbc.password.property";
   private static final String JDBC_PORT = "jdbc.port";
-  private static final String STORE_IMAGE = "image";
-  private static final String STORE_CONTAINER = "container";
 
   private final ResourceInjector injector = new ResourceInjector();
+  private final DatabaseContainerFactory containerFactory = new DatabaseContainerFactory();
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
@@ -347,55 +344,15 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     C container;
     if (!configuration.isPresent()) {
-      container = createPostgreSqlContainer(context, startup);
+      container = containerFactory.createDatabaseContainer(context, DatabaseType.POSTGRESQL, startup);
     } else {
       Flyway flywayConfiguration = configuration.get();
-      switch (flywayConfiguration.database()) {
-        case POSTGRESQL:
-          container = createPostgreSqlContainer(context, startup);
-          break;
-        case MYSQL:
-          container = createMySqlContainer(context, startup);
-          break;
-        default:
-          throw new IllegalStateException("Database type " + flywayConfiguration.database() + " is not supported");
-      }
+      container = containerFactory.createDatabaseContainer(context, flywayConfiguration.database(), startup);
     }
     String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
     Optional.ofNullable(getGlobalStore(context, tag).get(JDBC_PORT, Integer.class))
       .ifPresent(hostPort -> container.addFixedPort(hostPort, container.getContainerPort()));
     return container;
-  }
-
-  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createPostgreSqlContainer(
-    ExtensionContext context, StartupType startup) {
-    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
-    Optional<String> imageName = ofNullable(getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
-    imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
-
-    InContainerDataPostgreSqlContainer container = imageName
-      .map(name -> new InContainerDataPostgreSqlContainer(name))
-      .orElseGet(() -> new InContainerDataPostgreSqlContainer());
-    if (startup == StartupType.FAST) {
-      container.setWaitStrategy(Wait.forLogMessage(POSTGRESQL_STARTUP_LOG_MESSAGE, 1));
-    }
-    return (C)container;
-  }
-
-  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createMySqlContainer(ExtensionContext context, StartupType startup) {
-    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
-    Optional<String> imageName = ofNullable(getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
-    imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
-
-    InContainerDataMySqlContainer container = imageName
-      .map(name -> new InContainerDataMySqlContainer(name))
-      .orElseGet(() -> new InContainerDataMySqlContainer());
-    if (startup == StartupType.FAST) {
-      container.setWaitStrategy(Wait.forLogMessage("mysqld: ready for connections", 1));
-    }
-    return (C)container;
   }
 
   private boolean existsImage(String imageName) {
@@ -417,7 +374,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
       .orElse(Flyway.DatabaseInstanceScope.PER_TEST_METHOD);
   }
 
-  private enum StartupType {
+  enum StartupType {
     SLOW, FAST;
   }
 }
