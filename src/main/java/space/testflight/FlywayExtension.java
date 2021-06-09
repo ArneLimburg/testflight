@@ -34,12 +34,12 @@ import java.util.Optional;
 import org.flywaydb.core.api.Location;
 import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.migration.JavaMigration;
+import org.flywaydb.core.api.resource.LoadableResource;
 import org.flywaydb.core.internal.database.mysql.MySQLParser;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 import org.flywaydb.core.internal.parser.Parser;
 import org.flywaydb.core.internal.parser.ParsingContext;
-import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
 import org.flywaydb.core.internal.resource.filesystem.FileSystemResource;
 import org.flywaydb.core.internal.scanner.LocationScannerCache;
@@ -255,7 +255,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
           LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
           loadableResources.add(loadableResource);
         } else if (scriptLocation.isFileSystem()) {
-          LoadableResource loadableResource = new FileSystemResource(null, scriptLocation.getPath(), UTF_8);
+          LoadableResource loadableResource = new FileSystemResource(null, scriptLocation.getPath(), UTF_8, false);
           loadableResources.add(loadableResource);
         } else {
           throw new IllegalStateException("Unsupported test data location " + scriptLocation);
@@ -301,7 +301,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     Location[] locations = configuration.getLocations();
     List<LoadableResource> migrations = new ArrayList<>();
 
-    FileSystemScanner fileSystemScanner = new FileSystemScanner(configuration.getEncoding(), false);
+    FileSystemScanner fileSystemScanner = new FileSystemScanner(configuration.getEncoding(), false, false, false);
     for (Location location : locations) {
       if (location.isClassPath()) {
         ClassPathScanner<JavaMigration> scanner = new ClassPathScanner<JavaMigration>(
@@ -310,7 +310,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
           configuration.getEncoding(),
           location,
           new ResourceNameCache(),
-          new LocationScannerCache());
+          new LocationScannerCache(),
+          false);
         migrations.addAll(scanner.scanForResources());
       } else if (location.isFileSystem()) {
         migrations.addAll(fileSystemScanner.scanForResources(location));

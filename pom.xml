@@ -5,7 +5,7 @@
 
   <groupId>space.testflight</groupId>
   <artifactId>testflight</artifactId>
-  <version>0.5.3-SNAPSHOT</version>
+  <version>0.6.0-SNAPSHOT</version>
 
   <name>Testflight.Space</name>
   <url>http://www.testflight.space</url>
@@ -78,7 +78,7 @@
       <dependency>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-core</artifactId>
-        <version>7.0.2</version>
+        <version>7.9.2</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
