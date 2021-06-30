@@ -127,6 +127,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
       teardownDb(context, false);
     }
+
+    getGlobalStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
   }
 
   @Override
