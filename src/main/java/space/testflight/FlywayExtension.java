@@ -128,7 +128,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
       teardownDb(context, false);
     }
 
-    getGlobalStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
+    getGlobalStore(context, (String)getClassStore(context).get(MIGRATION_TAG)).get(STORE_CONTAINER, AutoCloseable.class).close();
   }
 
   @Override
@@ -177,18 +177,14 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    org.flywaydb.core.Flyway dryway = org.flywaydb.core.Flyway.configure()
-      .configuration(configuration
-      .map(Flyway::configuration)
-      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
-      .orElse(emptyMap()))
-      .load();
+    org.flywaydb.core.Flyway dryway = configureFlyway(configuration);
     Optional<String> currentMigrationTarget = getCurrentMigrationTarget(dryway);
     List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
     int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
     String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget.orElse("") + testDataTagSuffix;
 
-    Store globalStore = getGlobalStore(context, tagName);
+    Store globalUrlStore = getGlobalStore(context);
+    Store globalTaggedStore = getGlobalStore(context, tagName);
     Store classStore = getClassStore(context);
     DatabaseType type = configuration.map(Flyway::database).orElse(DatabaseType.POSTGRESQL);
     String image = type.getImage(tagName);
@@ -205,18 +201,27 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
       prefillDatabase(container, type, loadableTestDataResources, flyway);
       container.tag(tagName);
-      globalStore.put(STORE_IMAGE, image);
+      globalTaggedStore.put(STORE_IMAGE, image);
     } else {
-      globalStore.put(STORE_IMAGE, image);
+      globalTaggedStore.put(STORE_IMAGE, image);
       container = createContainer(context, StartupType.FAST);
       container.start();
     }
-    globalStore.put(JDBC_URL, container.getJdbcUrl());
-    globalStore.put(JDBC_USERNAME, container.getUsername());
-    globalStore.put(JDBC_PASSWORD, container.getPassword());
-    globalStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
-    globalStore.put(STORE_CONTAINER, container);
-    setSystemProperties(configuration, globalStore);
+    globalUrlStore.put(JDBC_URL, container.getJdbcUrl());
+    globalUrlStore.put(JDBC_USERNAME, container.getUsername());
+    globalUrlStore.put(JDBC_PASSWORD, container.getPassword());
+    globalUrlStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
+    globalTaggedStore.put(STORE_CONTAINER, container);
+    setSystemProperties(configuration, globalUrlStore);
+  }
+
+  private org.flywaydb.core.Flyway configureFlyway(Optional<Flyway> configuration) {
+    return org.flywaydb.core.Flyway.configure()
+      .configuration(configuration
+      .map(Flyway::configuration)
+      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
+      .orElse(emptyMap()))
+      .load();
   }
 
   private void prefillDatabase(
@@ -327,8 +332,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   }
 
   static ExtensionContext.Store getGlobalStore(ExtensionContext context) {
-    Store classStore = getClassStore(context);
-    return getGlobalStore(context, classStore.get(FlywayExtension.MIGRATION_TAG, String.class));
+    return context.getRoot().getStore(Namespace.create(FlywayExtension.class));
   }
 
   static ExtensionContext.Store getGlobalStore(ExtensionContext context, String tag) {
@@ -352,8 +356,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
       Flyway flywayConfiguration = configuration.get();
       container = containerFactory.createDatabaseContainer(context, flywayConfiguration.database(), startup);
     }
-    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
-    Optional.ofNullable(getGlobalStore(context, tag).get(JDBC_PORT, Integer.class))
+    Optional.ofNullable(getGlobalStore(context).get(JDBC_PORT, Integer.class))
       .ifPresent(hostPort -> container.addFixedPort(hostPort, container.getContainerPort()));
     return container;
   }

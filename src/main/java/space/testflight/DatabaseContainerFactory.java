@@ -19,6 +19,8 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+import static space.testflight.FlywayExtension.MIGRATION_TAG;
+import static space.testflight.FlywayExtension.STORE_IMAGE;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -46,8 +48,8 @@ public class DatabaseContainerFactory {
     ExtensionContext context, DatabaseType databaseType, StartupType startup) {
 
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    String tag = FlywayExtension.getClassStore(context).get(FlywayExtension.MIGRATION_TAG, String.class);
-    Optional<String> imageName = ofNullable(FlywayExtension.getGlobalStore(context, tag).get(FlywayExtension.STORE_IMAGE, String.class));
+    String tag = FlywayExtension.getClassStore(context).get(MIGRATION_TAG, String.class);
+    Optional<String> imageName = ofNullable(FlywayExtension.getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
     imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
 
     C container = createDatabaseContainer(databaseType, imageName);
