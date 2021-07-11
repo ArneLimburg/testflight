@@ -35,6 +35,8 @@ import com.github.database.rider.core.api.dataset.SeedStrategy;
 import com.github.database.rider.junit5.api.DBRider;
 
 import space.testflight.ConfigProperty;
+import space.testflight.DatabaseInstanceScope;
+import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
@@ -42,8 +44,8 @@ import space.testflight.model.Customer;
 @DBUnit(schema = "public", caseInsensitiveStrategy = Orthography.LOWERCASE)
 @DataSet(value = "dbrider/customers.yml", strategy = SeedStrategy.INSERT)
 @Flyway(
-  database = Flyway.DatabaseType.POSTGRESQL,
-  databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
+  database = DatabaseType.POSTGRESQL,
+  databaseInstance = DatabaseInstanceScope.PER_TEST_METHOD,
   configuration = {
   @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),

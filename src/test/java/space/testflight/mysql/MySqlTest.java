@@ -32,8 +32,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import space.testflight.ConfigProperty;
+import space.testflight.DatabaseType;
 import space.testflight.Flyway;
-import space.testflight.Flyway.DatabaseType;
 import space.testflight.model.Customer;
 
 @Flyway(

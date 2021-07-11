@@ -30,7 +30,7 @@ public class Customer {
   @TableGenerator(name = "customer-id", table = "ids", pkColumnName = "id", pkColumnValue = "customer_id", valueColumnName = "value")
   Long id;
 
-  @Column
+  @Column(name = "username")
   String userName;
 
   @Column

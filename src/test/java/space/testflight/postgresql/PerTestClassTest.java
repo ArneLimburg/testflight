@@ -33,12 +33,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import space.testflight.ConfigProperty;
+import space.testflight.DatabaseInstanceScope;
+import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
 @Flyway(
-  database = Flyway.DatabaseType.POSTGRESQL,
-  databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_CLASS,
+  database = DatabaseType.POSTGRESQL,
+  databaseInstance = DatabaseInstanceScope.PER_TEST_CLASS,
   configuration = {
   @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),

@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 
 import space.testflight.ConfigProperty;
+import space.testflight.DatabaseInstanceScope;
+import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 
 public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
@@ -43,8 +45,8 @@ public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
   }
 
   @Flyway(
-    database = Flyway.DatabaseType.POSTGRESQL,
-    databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
+    database = DatabaseType.POSTGRESQL,
+    databaseInstance = DatabaseInstanceScope.PER_TEST_METHOD,
     configuration = {
     @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
     @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
@@ -57,8 +59,8 @@ public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
   }
 
   @Flyway(
-    database = Flyway.DatabaseType.POSTGRESQL,
-    databaseInstance = Flyway.DatabaseInstanceScope.PER_TEST_METHOD,
+    database = DatabaseType.POSTGRESQL,
+    databaseInstance = DatabaseInstanceScope.PER_TEST_METHOD,
     configuration = {
     @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
     @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),

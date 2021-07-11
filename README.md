@@ -6,6 +6,16 @@ Testflight.Space is a JUnit 5 extension for flyway to mandate fast database test
 
 Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be started for every of your tests.
 
+## Maven Coordinates
+
+```
+    <dependency>
+      <groupId>space.testflight</groupId>
+      <artifactId>testflight</artifactId>
+      <version>0.7.0</version>
+    </dependency>
+```
+
 ## Configuring database lifecycle
 
 By default a fresh instance is started for every test method,
@@ -16,7 +26,8 @@ This may be interesting, when a method will be executed multiple times (i.e. for
 @Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_EXECUTION)
 ```
 
-Or, when you just want to start it once per test class, you can use `DatabaseInstanceScope.PER_TEST_CLASS`. 
+Or you can use `DatabaseInstanceScope.PER_TEST_CLASS` when you just want to start it once per test class,
+or even `DatabaseInstanceScope.PER_TEST_SUITE` for running the same instance for all tests.
 
 ## Configuration of Flyway
 
@@ -58,9 +69,9 @@ You can change the system property names via:
 
 ```
 @Flyway(configuration = {
-  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "spring.datasource.url"),
+  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "spring.datasource.username"),
+  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "spring.datasource.password")
 })
 ```
 ## Injection of resources

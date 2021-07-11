@@ -15,38 +15,19 @@
  */
 package space.testflight;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.stream;
-import static java.util.Collections.emptyMap;
-import static java.util.stream.Collectors.toMap;
+import static java.util.Optional.ofNullable;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
+import static space.testflight.DatabaseInstanceScope.PER_TEST_METHOD;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.flywaydb.core.api.Location;
-import org.flywaydb.core.api.configuration.Configuration;
-import org.flywaydb.core.api.migration.JavaMigration;
-import org.flywaydb.core.api.resource.LoadableResource;
-import org.flywaydb.core.internal.database.mysql.MySQLParser;
-import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
-import org.flywaydb.core.internal.jdbc.JdbcTemplate;
-import org.flywaydb.core.internal.parser.Parser;
-import org.flywaydb.core.internal.parser.ParsingContext;
-import org.flywaydb.core.internal.resource.classpath.ClassPathResource;
-import org.flywaydb.core.internal.resource.filesystem.FileSystemResource;
-import org.flywaydb.core.internal.scanner.LocationScannerCache;
-import org.flywaydb.core.internal.scanner.ResourceNameCache;
-import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
-import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
-import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
@@ -65,8 +46,6 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import com.github.dockerjava.api.model.Image;
 
-import space.testflight.Flyway.DatabaseType;
-
 public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, BeforeTestExecutionCallback,
   AfterTestExecutionCallback, AfterEachCallback, AfterAllCallback, TestInstancePostProcessor, ParameterResolver {
 
@@ -74,6 +53,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   static final String JDBC_URL = "space.testflight.jdbc.url";
   static final String JDBC_USERNAME = "space.testflight.jdbc.username";
   static final String JDBC_PASSWORD = "space.testflight.jdbc.password";
+  static final String STORE_CONFIGURATION = "configuration";
   static final String MIGRATION_TAG = "migration.tag";
   static final String STORE_IMAGE = "image";
   static final String STORE_CONTAINER = "container";
@@ -81,6 +61,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   private static final String JDBC_USERNAME_PROPERTY = "space.testflight.jdbc.username.property";
   private static final String JDBC_PASSWORD_PROPERTY = "space.testflight.jdbc.password.property";
   private static final String JDBC_PORT = "jdbc.port";
+  private static Map<String, JdbcDatabaseContainer<?>> suiteContainers = new ConcurrentHashMap<String, JdbcDatabaseContainer<?>>();
 
   private final ResourceInjector injector = new ResourceInjector();
   private final DatabaseContainerFactory containerFactory = new DatabaseContainerFactory();
@@ -89,46 +70,50 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   public void beforeAll(ExtensionContext context) throws Exception {
     initialize(context);
 
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_CLASS) {
       startDatabase(context, false);
     }
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_METHOD) {
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_METHOD) {
       startDatabase(context, true);
     }
   }
 
   @Override
   public void beforeTestExecution(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_EXECUTION) {
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_EXECUTION) {
       startDatabase(context, true);
     }
   }
 
   @Override
   public void afterTestExecution(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_EXECUTION) {
-      teardownDb(context, true);
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_EXECUTION) {
+      teardownDatabase(context, true);
     }
   }
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_METHOD) {
-      teardownDb(context, true);
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_METHOD) {
+      teardownDatabase(context, true);
     }
   }
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
-    if (getDatabaseInstance(context) == Flyway.DatabaseInstanceScope.PER_TEST_CLASS) {
-      teardownDb(context, false);
+    if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_CLASS) {
+      teardownDatabase(context, false);
     }
 
-    getGlobalStore(context, (String)getClassStore(context).get(MIGRATION_TAG)).get(STORE_CONTAINER, AutoCloseable.class).close();
+    Store classStore = getClassStore(context);
+    TestflightConfiguration configuration = classStore.get(STORE_CONFIGURATION, TestflightConfiguration.class);
+    if (configuration.getDatabaseInstanceScope() != DatabaseInstanceScope.PER_TEST_SUITE) {
+      getGlobalStore(context, classStore.get(MIGRATION_TAG, String.class)).get(STORE_CONTAINER, AutoCloseable.class).close();
+    }
   }
 
   @Override
@@ -167,7 +152,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     }
   }
 
-  private void teardownDb(ExtensionContext context, boolean useMethodLevelStore) throws Exception {
+  private void teardownDatabase(ExtensionContext context, boolean useMethodLevelStore) throws Exception {
     if (useMethodLevelStore) {
       getMethodStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
     } else {
@@ -176,30 +161,27 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   }
 
   private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
-    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    org.flywaydb.core.Flyway dryway = configureFlyway(configuration);
-    Optional<String> currentMigrationTarget = getCurrentMigrationTarget(dryway);
-    List<LoadableResource> loadableTestDataResources = getTestDataScriptResources(configuration);
-    int testDataTagSuffix = getTestDataTagSuffix(loadableTestDataResources);
+    TestflightConfiguration configuration = new FlywayConfiguration(findAnnotation(context.getTestClass(), Flyway.class));
+    Optional<String> currentMigrationTarget = configuration.getCurrentMigrationTarget();
+    int testDataTagSuffix = configuration.getTestDataTagSuffix();
     String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget.orElse("") + testDataTagSuffix;
 
     Store globalUrlStore = getGlobalStore(context);
     Store globalTaggedStore = getGlobalStore(context, tagName);
     Store classStore = getClassStore(context);
-    DatabaseType type = configuration.map(Flyway::database).orElse(DatabaseType.POSTGRESQL);
-    String image = type.getImage(tagName);
+    String image = configuration.getDockerImage(tagName);
+    classStore.put(STORE_CONFIGURATION, configuration);
     classStore.put(MIGRATION_TAG, tagName);
 
     C container;
-    if (!existsImage(image)) {
+    C suiteContainer = (C)suiteContainers.get(tagName);
+    if (suiteContainer != null && suiteContainer.isRunning()) {
+      container = suiteContainer;
+    } else if (!existsImage(image)) {
       container = createContainer(context, StartupType.SLOW);
       container.start();
-      org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-        .configuration(dryway.getConfiguration())
-        .dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
-        .load();
 
-      prefillDatabase(container, type, loadableTestDataResources, flyway);
+      prefillDatabase(configuration, container);
       container.tag(tagName);
       globalTaggedStore.put(STORE_IMAGE, image);
     } else {
@@ -213,122 +195,42 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     globalUrlStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
     globalTaggedStore.put(STORE_CONTAINER, container);
     setSystemProperties(configuration, globalUrlStore);
-  }
-
-  private org.flywaydb.core.Flyway configureFlyway(Optional<Flyway> configuration) {
-    return org.flywaydb.core.Flyway.configure()
-      .configuration(configuration
-      .map(Flyway::configuration)
-      .map(properties -> stream(properties).collect(toMap(ConfigProperty::key, ConfigProperty::value)))
-      .orElse(emptyMap()))
-      .load();
+    if (configuration.getDatabaseInstanceScope() == DatabaseInstanceScope.PER_TEST_SUITE) {
+      Object previous = suiteContainers.putIfAbsent(tagName, container);
+      if (previous == null) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> container.stop()));
+      }
+    }
   }
 
   private void prefillDatabase(
-    JdbcDatabaseContainer<?> container,
-    DatabaseType type,
-    List<LoadableResource> loadableTestDataResources,
-    org.flywaydb.core.Flyway flyway) throws SQLException {
-    flyway.migrate();
-
-    Configuration flywayConfiguration = flyway.getConfiguration();
-    ParsingContext parsingContext = new ParsingContext();
-    JdbcTemplate jdbcTemplate = new JdbcTemplate(flywayConfiguration.getDataSource().getConnection());
-    Parser parser;
-    switch (type) {
-      case POSTGRESQL:
-        parser = new PostgreSQLParser(flywayConfiguration, parsingContext);
-        break;
-      case MYSQL:
-        parser = new MySQLParser(flywayConfiguration, parsingContext);
-        break;
-      default:
-        throw new IllegalStateException("Unsupported database type " + type);
-    }
-
-    for (LoadableResource testDataScript : loadableTestDataResources) {
-      SqlStatementIterator parse = parser.parse(testDataScript);
-      parse.forEachRemaining(p -> p.execute(jdbcTemplate));
-    }
+    TestflightConfiguration configuration,
+    JdbcDatabaseContainer<?> container) throws SQLException {
+    configuration.applyToDatabase(container);
   }
 
-  private List<LoadableResource> getTestDataScriptResources(Optional<Flyway> configuration) {
-    List<LoadableResource> loadableResources = new ArrayList<>();
-    if (configuration.isPresent()) {
-      String[] testDataScripts = configuration.get().testDataScripts();
-      for (String testDataScript : testDataScripts) {
-        Location scriptLocation = new Location(testDataScript);
-        if (scriptLocation.isClassPath()) {
-          LoadableResource loadableResource = new ClassPathResource(null, testDataScript, this.getClass().getClassLoader(), UTF_8);
-          loadableResources.add(loadableResource);
-        } else if (scriptLocation.isFileSystem()) {
-          LoadableResource loadableResource = new FileSystemResource(null, scriptLocation.getPath(), UTF_8, false);
-          loadableResources.add(loadableResource);
-        } else {
-          throw new IllegalStateException("Unsupported test data location " + scriptLocation);
-        }
-      }
-    }
-
-    return loadableResources;
-  }
-
-  private int getTestDataTagSuffix(List<LoadableResource> loadableTestDataResources) {
-    StringBuilder stringBuilder = new StringBuilder();
-    for (LoadableResource loadableTestDataResource : loadableTestDataResources) {
-      stringBuilder.append(loadableTestDataResource.getFilename());
-    }
-
-    return stringBuilder.toString().hashCode();
-  }
-
-  private void setSystemProperties(Optional<Flyway> configuration, Store globalStore) {
-    String urlPropertyName = configuration.map(Flyway::configuration)
-      .map(Arrays::stream)
-      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_URL_PROPERTY)).findAny())
-      .map(ConfigProperty::value)
+  private void setSystemProperties(TestflightConfiguration configuration, Store globalStore) {
+    String urlPropertyName = configuration.getProperties().entrySet()
+      .stream()
+      .filter(entry -> entry.getKey().equals(JDBC_URL_PROPERTY))
+      .findAny()
+      .map(Entry::getValue)
       .orElse(JDBC_URL);
-    String userPropertyName = configuration.map(Flyway::configuration)
-      .map(Arrays::stream)
-      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_USERNAME_PROPERTY)).findAny())
-      .map(ConfigProperty::value)
+    String userPropertyName = configuration.getProperties().entrySet()
+      .stream()
+      .filter(entry -> entry.getKey().equals(JDBC_USERNAME_PROPERTY))
+      .findAny()
+      .map(Entry::getValue)
       .orElse(JDBC_USERNAME);
-    String passwordPropertyName = configuration.map(Flyway::configuration)
-      .map(Arrays::stream)
-      .flatMap(config -> config.filter(entry -> entry.key().equals(JDBC_PASSWORD_PROPERTY)).findAny())
-      .map(ConfigProperty::value)
+    String passwordPropertyName = configuration.getProperties().entrySet()
+      .stream()
+      .filter(entry -> entry.getKey().equals(JDBC_PASSWORD_PROPERTY))
+      .findAny()
+      .map(Entry::getValue)
       .orElse(JDBC_PASSWORD);
     System.setProperty(urlPropertyName, globalStore.get(JDBC_URL, String.class));
     System.setProperty(userPropertyName, globalStore.get(JDBC_USERNAME, String.class));
     System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
-  }
-
-  private Optional<String> getCurrentMigrationTarget(org.flywaydb.core.Flyway dryway) throws URISyntaxException, IOException {
-    Configuration configuration = dryway.getConfiguration();
-    Location[] locations = configuration.getLocations();
-    List<LoadableResource> migrations = new ArrayList<>();
-
-    FileSystemScanner fileSystemScanner = new FileSystemScanner(configuration.getEncoding(), false, false, false);
-    for (Location location : locations) {
-      if (location.isClassPath()) {
-        ClassPathScanner<JavaMigration> scanner = new ClassPathScanner<JavaMigration>(
-          JavaMigration.class,
-          configuration.getClassLoader(),
-          configuration.getEncoding(),
-          location,
-          new ResourceNameCache(),
-          new LocationScannerCache(),
-          false);
-        migrations.addAll(scanner.scanForResources());
-      } else if (location.isFileSystem()) {
-        migrations.addAll(fileSystemScanner.scanForResources(location));
-      } else {
-        throw new IllegalStateException("Unsupported location " + location);
-      }
-    }
-
-    Optional<LoadableResource> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
-    return latestMigration.map(p -> p.getFilename().toString().split("__")[0].replace(".", "_"));
   }
 
   static ExtensionContext.Store getGlobalStore(ExtensionContext context) {
@@ -374,10 +276,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
 
   }
 
-  private Flyway.DatabaseInstanceScope getDatabaseInstance(ExtensionContext context) {
-    return findAnnotation(context.getTestClass(), Flyway.class)
-      .map(Flyway::databaseInstance)
-      .orElse(Flyway.DatabaseInstanceScope.PER_TEST_METHOD);
+  private DatabaseInstanceScope getDatabaseInstance(ExtensionContext context) {
+    return ofNullable(getClassStore(context).get(STORE_CONFIGURATION, TestflightConfiguration.class))
+        .map(TestflightConfiguration::getDatabaseInstanceScope)
+        .orElse(PER_TEST_METHOD);
   }
 
   enum StartupType {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arne Limburg
+ * Copyright 2020 - 2021 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import space.testflight.Flyway.DatabaseType;
 import space.testflight.FlywayExtension.StartupType;
 
 public class DatabaseContainerFactory {

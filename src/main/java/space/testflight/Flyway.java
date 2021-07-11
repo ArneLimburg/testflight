@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Arne Limburg
+ * Copyright 2020 - 2021 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ package space.testflight;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.TYPE;
-import static org.testcontainers.containers.MySQLContainer.NAME;
-import static org.testcontainers.containers.PostgreSQLContainer.IMAGE;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -35,35 +33,4 @@ public @interface Flyway {
   DatabaseInstanceScope databaseInstance() default DatabaseInstanceScope.PER_TEST_METHOD;
   String[] testDataScripts() default {};
   ConfigProperty[] configuration() default {};
-
-  enum DatabaseType {
-    POSTGRESQL(IMAGE, ".*database system is ready to accept connections.*\\s"),
-    MYSQL(NAME, "mysqld: ready for connections");
-
-    private String image;
-    private String startupLogMessage;
-
-    DatabaseType(String databaseImage, String startupLogMessage) {
-      this.image = databaseImage;
-      this.startupLogMessage = startupLogMessage;
-    }
-
-    public String getImage() {
-      return image;
-    }
-
-    public String getImage(String tag) {
-      return getImage() + ":" + tag;
-    }
-
-    String getStartupLogMessage() {
-      return startupLogMessage;
-    }
-  }
-
-  enum DatabaseInstanceScope {
-    PER_TEST_EXECUTION, // after @BeforeEach works with parameterized tests
-    PER_TEST_METHOD,    // before @BeforeEach
-    PER_TEST_CLASS      // before @BeforeAll
-  }
 }

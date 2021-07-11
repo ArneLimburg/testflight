@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.postgresql;
+package space.testflight.suite;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,15 +31,27 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import space.testflight.DatabaseType;
+import space.testflight.DatabaseInstanceScope;
 import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
-@Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
-public class SecondPostgreSqlTest {
+@Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_SUITE)
+public class FirstSuiteTest {
 
+  private static boolean hansInserted = false;
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
+
+  public static boolean hansInserted() {
+    return hansInserted;
+  }
+
+  public static void setHansInserted() {
+    if (hansInserted) {
+      throw new IllegalStateException("Hans is already inserted");
+    }
+    hansInserted = true;
+  }
 
   @BeforeAll
   static void createEntityManagerFactory() {
@@ -66,36 +78,20 @@ public class SecondPostgreSqlTest {
   }
 
   @Test
-  void initialTest() {
-    Customer hans = new Customer("Hans", "hans@mail.de");
+  void insertHans() {
+    if (!hansInserted()) {
+      Customer hans = new Customer("Hans", "hans@mail.de");
 
-    entityManager.getTransaction().begin();
-    entityManager.persist(hans);
-    entityManager.getTransaction().commit();
+      entityManager.getTransaction().begin();
+      entityManager.persist(hans);
+      entityManager.getTransaction().commit();
 
-    List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
-
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Hans")
-      .contains("Admin") // in flyway script
-      .contains("tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
-  }
-
-  @Test
-  void secondTest() {
-    Customer peter = new Customer("Peter", "peter@mail.de");
-
-    entityManager.getTransaction().begin();
-    entityManager.persist(peter);
-    entityManager.getTransaction().commit();
+      setHansInserted();
+    }
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Peter")
-      .contains("Admin") // in flyway script
-      .contains("tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+    assertThat(customers).hasSize(4)
+            .extracting(Customer::getUserName).containsExactlyInAnyOrder("Hans", "Admin", "Admin2", "Admin3"); // admins in flyway script
   }
 }
