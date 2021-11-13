@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import org.flywaydb.core.api.Location;
 import org.flywaydb.core.api.configuration.Configuration;
@@ -43,6 +44,7 @@ import org.flywaydb.core.internal.scanner.LocationScannerCache;
 import org.flywaydb.core.internal.scanner.ResourceNameCache;
 import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
 import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
+import org.flywaydb.core.internal.sqlscript.SqlStatement;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
@@ -123,7 +125,15 @@ public class FlywayConfiguration extends TestflightConfiguration {
 
     for (LoadableResource testDataScript : testDataScriptResources) {
       SqlStatementIterator parse = parser.parse(testDataScript);
-      parse.forEachRemaining(p -> p.execute(jdbcTemplate));
+      parse.forEachRemaining(p -> executeSqlStatement(p, jdbcTemplate));
+    }
+  }
+
+  private void executeSqlStatement(SqlStatement sqlStatement, JdbcTemplate jdbcTemplate) {
+    try {
+      jdbcTemplate.execute(sqlStatement.getSql());
+    } catch (SQLException e) {
+      Logger.getLogger(FlywayConfiguration.class.getName()).warning(e.getMessage());
     }
   }
 
