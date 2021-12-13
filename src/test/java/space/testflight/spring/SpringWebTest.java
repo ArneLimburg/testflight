@@ -15,7 +15,7 @@
  */
 package space.testflight.spring;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import java.util.List;
@@ -53,6 +53,6 @@ public class SpringWebTest {
       HttpMethod.GET,
       HttpEntity.EMPTY,
       new ParameterizedTypeReference<List<Customer>>() { }).getBody();
-    assertEquals(3, result.size());
+    assertThat(result).hasSize(3);
   }
 }
