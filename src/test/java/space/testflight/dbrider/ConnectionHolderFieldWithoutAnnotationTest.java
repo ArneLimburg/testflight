@@ -30,10 +30,11 @@ import space.testflight.Flyway;
   database = DatabaseType.POSTGRESQL,
   databaseInstance = DatabaseInstanceScope.PER_TEST_METHOD,
   configuration = {
-  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-})
+    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+  }
+)
 public class ConnectionHolderFieldWithoutAnnotationTest {
 
   private ConnectionHolder connectionHolder;  // field is missing TestResource and is ignored

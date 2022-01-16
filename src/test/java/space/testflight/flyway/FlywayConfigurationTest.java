@@ -37,14 +37,16 @@ import space.testflight.model.Customer;
 @Flyway(
   database = DatabaseType.POSTGRESQL,
   testDataScripts = {
-  "filesystem:src/test/resources/db/second-testdata/second-init.sql",
-  "filesystem:src/test/resources/db/second-testdata/initTwo.sql"},
+    "filesystem:src/test/resources/db/second-testdata/second-init.sql",
+    "filesystem:src/test/resources/db/second-testdata/initTwo.sql"
+  },
   configuration = {
-  @ConfigProperty(key = "flyway.locations", value = "filesystem:src/test/resources/db/second-migration"),
-  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-})
+    @ConfigProperty(key = "flyway.locations", value = "filesystem:src/test/resources/db/second-migration"),
+    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+  }
+)
 public class FlywayConfigurationTest {
 
   private static EntityManagerFactory entityManagerFactory;

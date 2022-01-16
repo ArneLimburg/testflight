@@ -38,10 +38,11 @@ import space.testflight.model.Customer;
   database = DatabaseType.POSTGRESQL,
   testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
   configuration = {
-  @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-  @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-  @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-})
+    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
+    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
+    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
+  }
+)
 public class PostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
