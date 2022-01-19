@@ -23,10 +23,6 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 public class InContainerDataMySqlContainer extends MySQLContainer<InContainerDataMySqlContainer>
   implements DefaultTaggableContainer<InContainerDataMySqlContainer> {
 
-  public InContainerDataMySqlContainer() {
-    this(NAME);
-  }
-
   public InContainerDataMySqlContainer(String image) {
     setImage(new ImageFromDockerfile(image)
       .withDockerfileFromBuilder(builder ->

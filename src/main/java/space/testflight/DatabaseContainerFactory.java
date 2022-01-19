@@ -16,21 +16,17 @@
 package space.testflight;
 
 import static java.util.Collections.unmodifiableMap;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
-import static space.testflight.FlywayExtension.MIGRATION_TAG;
-import static space.testflight.FlywayExtension.STORE_IMAGE;
+import static space.testflight.FlywayExtension.getConfiguration;
+import static space.testflight.FlywayExtension.getMigrationTagName;
 
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import space.testflight.FlywayExtension.StartupType;
+import space.testflight.FlywayExtension.ImageType;
 
 public class DatabaseContainerFactory {
 
@@ -44,31 +40,29 @@ public class DatabaseContainerFactory {
   }
 
   public <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createDatabaseContainer(
-    ExtensionContext context, DatabaseType databaseType, StartupType startup) {
+    ExtensionContext context, DatabaseType databaseType, ImageType imageType) {
 
-    Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
-    String tag = FlywayExtension.getClassStore(context).get(MIGRATION_TAG, String.class);
-    Optional<String> imageName = ofNullable(FlywayExtension.getGlobalStore(context, tag).get(STORE_IMAGE, String.class));
-    imageName = of(imageName.orElse(configuration.map(Flyway::dockerImage).orElse(""))).filter(image -> !image.isEmpty());
-
-    C container = createDatabaseContainer(databaseType, imageName);
-    if (startup == StartupType.FAST) {
+    C container = createDatabaseContainer(databaseType, getImageName(context, imageType));
+    if (imageType == ImageType.TAGGED) {
       container.setWaitStrategy(Wait.forLogMessage(databaseType.getStartupLogMessage(), 1));
     }
     return (C)container;
   }
 
+  private String getImageName(ExtensionContext context, ImageType imageType) {
+    TestflightConfiguration configuration = getConfiguration(context);
+    return imageType == ImageType.TAGGED
+        ? configuration.getDockerImage(getMigrationTagName(context))
+        : configuration.getDockerImage();
+  }
+
   private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createDatabaseContainer(
-    DatabaseType databaseType, Optional<String> imageName) {
+    DatabaseType databaseType, String imageName) {
 
     try {
       String className = DATABASE_CONTAINER_CLASS_NAMES.get(databaseType);
       Class<C> containerType = (Class)DatabaseContainerFactory.class.getClassLoader().loadClass(className);
-      if (imageName.isPresent()) {
-        return containerType.getDeclaredConstructor(String.class).newInstance(imageName.get());
-      } else {
-        return containerType.getDeclaredConstructor().newInstance();
-      }
+      return containerType.getDeclaredConstructor(String.class).newInstance(imageName);
     } catch (ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }

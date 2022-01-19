@@ -21,18 +21,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InContainerDataPostgreSqlContainer>
   implements DefaultTaggableContainer<InContainerDataPostgreSqlContainer> {
 
-  public InContainerDataPostgreSqlContainer() {
-    super();
-    initCommand();
-  }
-
   public InContainerDataPostgreSqlContainer(String dockerImage) {
     super(dockerImage);
-    initCommand();
-  }
-
-  private void initCommand() {
-    this.withEnv("PGDATA", "/var/lib/postgresql/data-local");
+    withEnv("PGDATA", "/var/lib/postgresql/data-local");
   }
 
   @Override
