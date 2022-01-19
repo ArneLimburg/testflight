@@ -21,7 +21,8 @@ import static java.util.Collections.unmodifiableList;
 import static space.testflight.FlywayExtension.JDBC_PASSWORD;
 import static space.testflight.FlywayExtension.JDBC_URL;
 import static space.testflight.FlywayExtension.JDBC_USERNAME;
-import static space.testflight.FlywayExtension.getGlobalStore;
+import static space.testflight.FlywayExtension.getContainerStore;
+import static space.testflight.FlywayExtension.getConfiguration;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
@@ -107,14 +108,18 @@ public class ResourceInjector {
   }
 
   private String getJdbcUrl(ExtensionContext context) {
-    return getGlobalStore(context).get(JDBC_URL, String.class);
+    return getContainerStore(context, getScope(context)).get(JDBC_URL, String.class);
   }
 
   private String getJdbcUser(ExtensionContext context) {
-    return getGlobalStore(context).get(JDBC_USERNAME, String.class);
+    return getContainerStore(context, getScope(context)).get(JDBC_USERNAME, String.class);
   }
 
   private String getJdbcPassword(ExtensionContext context) {
-    return getGlobalStore(context).get(JDBC_PASSWORD, String.class);
+    return getContainerStore(context, getScope(context)).get(JDBC_PASSWORD, String.class);
+  }
+
+  private DatabaseInstanceScope getScope(ExtensionContext context) {
+    return getConfiguration(context).getDatabaseInstanceScope();
   }
 }

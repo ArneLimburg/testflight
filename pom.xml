@@ -255,18 +255,8 @@
               <goal>test</goal>
             </goals>
             <configuration>
-              <excludedGroups>clean,suite,failing</excludedGroups>
+              <excludedGroups>clean,failing</excludedGroups>
              </configuration>
-          </execution>
-          <execution>
-            <id>suite</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <configuration>
-              <groups>suite</groups>
-            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -22,11 +22,9 @@ import static space.testflight.DatabaseInstanceScope.PER_TEST_METHOD;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -53,15 +51,14 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   static final String JDBC_URL = "space.testflight.jdbc.url";
   static final String JDBC_USERNAME = "space.testflight.jdbc.username";
   static final String JDBC_PASSWORD = "space.testflight.jdbc.password";
-  static final String STORE_CONFIGURATION = "configuration";
-  static final String MIGRATION_TAG = "migration.tag";
   static final String STORE_IMAGE = "image";
   static final String STORE_CONTAINER = "container";
+  private static final String STORE_CONFIGURATION = "configuration";
+  private static final String STORE_MIGRATION_TAG = "migration.tag";
   private static final String JDBC_URL_PROPERTY = "space.testflight.jdbc.url.property";
   private static final String JDBC_USERNAME_PROPERTY = "space.testflight.jdbc.username.property";
   private static final String JDBC_PASSWORD_PROPERTY = "space.testflight.jdbc.password.property";
   private static final String JDBC_PORT = "jdbc.port";
-  private static Map<String, JdbcDatabaseContainer<?>> suiteContainers = new ConcurrentHashMap<String, JdbcDatabaseContainer<?>>();
 
   private final ResourceInjector injector = new ResourceInjector();
   private final DatabaseContainerFactory containerFactory = new DatabaseContainerFactory();
@@ -109,10 +106,10 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
       teardownDatabase(context, false);
     }
 
-    Store classStore = getClassStore(context);
-    TestflightConfiguration configuration = classStore.get(STORE_CONFIGURATION, TestflightConfiguration.class);
+    TestflightConfiguration configuration = getConfiguration(context);
     if (configuration.getDatabaseInstanceScope() != DatabaseInstanceScope.PER_TEST_SUITE) {
-      getGlobalStore(context, classStore.get(MIGRATION_TAG, String.class)).get(STORE_CONTAINER, AutoCloseable.class).close();
+      String tagName = getMigrationTagName(context);
+      getContainerStore(context, configuration.getDatabaseInstanceScope()).get(tagName, AutoCloseable.class).close();
     }
   }
 
@@ -138,26 +135,21 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   }
 
   private void startDatabase(ExtensionContext context, boolean useMethodLevelStore) {
-    String tag = getClassStore(context).get(MIGRATION_TAG, String.class);
-    JdbcDatabaseContainer<?> container = getGlobalStore(context, tag).get(STORE_CONTAINER, JdbcDatabaseContainer.class);
+
+    Store containerStore = getContainerStore(context, getConfiguration(context).getDatabaseInstanceScope());
+    String tagName = getMigrationTagName(context);
+    JdbcDatabaseContainer<?> container = containerStore.get(tagName, JdbcDatabaseContainer.class);
     if (!container.isRunning()) {
-      container = createContainer(context, StartupType.FAST);
+      container = createContainer(context, ImageType.TAGGED);
       container.start();
     }
 
-    if (useMethodLevelStore) {
-      getMethodStore(context).put(STORE_CONTAINER, container);
-    } else {
-      getClassStore(context).put(STORE_CONTAINER, container);
-    }
+    containerStore.put(tagName, container);
   }
 
   private void teardownDatabase(ExtensionContext context, boolean useMethodLevelStore) throws Exception {
-    if (useMethodLevelStore) {
-      getMethodStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
-    } else {
-      getClassStore(context).get(STORE_CONTAINER, AutoCloseable.class).close();
-    }
+    Store containerStore = getContainerStore(context, getConfiguration(context).getDatabaseInstanceScope());
+    containerStore.get(getMigrationTagName(context), AutoCloseable.class).close();
   }
 
   private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
@@ -166,41 +158,42 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     int testDataTagSuffix = configuration.getTestDataTagSuffix();
     String tagName = TESTFLIGHT_PREFIX + currentMigrationTarget.orElse("") + testDataTagSuffix;
 
-    Store globalUrlStore = getGlobalStore(context);
-    Store globalTaggedStore = getGlobalStore(context, tagName);
-    Store classStore = getClassStore(context);
+    Store containerStore = getContainerStore(context, configuration.getDatabaseInstanceScope());
+    storeConfiguration(context, configuration, tagName);
+
     String image = configuration.getDockerImage(tagName);
-    classStore.put(STORE_CONFIGURATION, configuration);
-    classStore.put(MIGRATION_TAG, tagName);
 
     C container;
-    C suiteContainer = (C)suiteContainers.get(tagName);
-    if (suiteContainer != null && suiteContainer.isRunning()) {
-      container = suiteContainer;
+    C previous = (C)containerStore.get(tagName);
+    if (previous != null && previous.isRunning()) {
+      container = previous;
     } else if (!existsImage(image)) {
-      container = createContainer(context, StartupType.SLOW);
+      container = createContainer(context, ImageType.DEFAULT);
       container.start();
 
       prefillDatabase(configuration, container);
       container.tag(tagName);
-      globalTaggedStore.put(STORE_IMAGE, image);
     } else {
-      globalTaggedStore.put(STORE_IMAGE, image);
-      container = createContainer(context, StartupType.FAST);
+      container = createContainer(context, ImageType.TAGGED);
       container.start();
     }
-    globalUrlStore.put(JDBC_URL, container.getJdbcUrl());
-    globalUrlStore.put(JDBC_USERNAME, container.getUsername());
-    globalUrlStore.put(JDBC_PASSWORD, container.getPassword());
-    globalUrlStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
-    globalTaggedStore.put(STORE_CONTAINER, container);
-    setSystemProperties(configuration, globalUrlStore);
+    containerStore.put(JDBC_URL, container.getJdbcUrl());
+    containerStore.put(JDBC_USERNAME, container.getUsername());
+    containerStore.put(JDBC_PASSWORD, container.getPassword());
+    containerStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
+    containerStore.put(tagName, container);
+    setSystemProperties(configuration, containerStore);
     if (configuration.getDatabaseInstanceScope() == DatabaseInstanceScope.PER_TEST_SUITE) {
-      Object previous = suiteContainers.putIfAbsent(tagName, container);
       if (previous == null) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> container.stop()));
       }
     }
+  }
+
+  private void storeConfiguration(ExtensionContext context, TestflightConfiguration configuration, String tagName) {
+    Store classStore = getClassStore(context);
+    classStore.put(STORE_CONFIGURATION, configuration);
+    classStore.put(STORE_MIGRATION_TAG, tagName);
   }
 
   private void prefillDatabase(
@@ -233,32 +226,33 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     System.setProperty(passwordPropertyName, globalStore.get(JDBC_PASSWORD, String.class));
   }
 
-  static ExtensionContext.Store getGlobalStore(ExtensionContext context) {
-    return context.getRoot().getStore(Namespace.create(FlywayExtension.class));
+  static ExtensionContext.Store getContainerStore(ExtensionContext context, DatabaseInstanceScope scope) {
+    return context.getRoot().getStore(Namespace.create(FlywayExtension.class, scope));
   }
 
-  static ExtensionContext.Store getGlobalStore(ExtensionContext context, String tag) {
-    return context.getRoot().getStore(Namespace.create(FlywayExtension.class, tag));
+  static String getMigrationTagName(ExtensionContext context) {
+    return getClassStore(context).get(STORE_MIGRATION_TAG, String.class);
   }
 
-  static ExtensionContext.Store getClassStore(ExtensionContext context) {
+  static TestflightConfiguration getConfiguration(ExtensionContext context) {
+    return getClassStore(context).get(STORE_CONFIGURATION, TestflightConfiguration.class);
+  }
+
+  private static ExtensionContext.Store getClassStore(ExtensionContext context) {
     return context.getStore(Namespace.create(context.getRequiredTestClass()));
   }
 
-  private ExtensionContext.Store getMethodStore(ExtensionContext context) {
-    return context.getStore(Namespace.create(getClass(), context.getRequiredTestMethod()));
-  }
-
-  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createContainer(ExtensionContext context, StartupType startup) {
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> C createContainer(ExtensionContext context, ImageType imageType) {
     Optional<Flyway> configuration = findAnnotation(context.getTestClass(), Flyway.class);
     C container;
     if (!configuration.isPresent()) {
-      container = containerFactory.createDatabaseContainer(context, DatabaseType.POSTGRESQL, startup);
+      container = containerFactory.createDatabaseContainer(context, DatabaseType.POSTGRESQL, imageType);
     } else {
       Flyway flywayConfiguration = configuration.get();
-      container = containerFactory.createDatabaseContainer(context, flywayConfiguration.database(), startup);
+      container = containerFactory.createDatabaseContainer(context, flywayConfiguration.database(), imageType);
     }
-    Optional.ofNullable(getGlobalStore(context).get(JDBC_PORT, Integer.class))
+    Store containerStore = getContainerStore(context, configuration.map(Flyway::databaseInstance).orElse(PER_TEST_METHOD));
+    Optional.ofNullable(containerStore.get(JDBC_PORT, Integer.class))
       .ifPresent(hostPort -> container.addFixedPort(hostPort, container.getContainerPort()));
     return container;
   }
@@ -277,12 +271,12 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
   }
 
   private DatabaseInstanceScope getDatabaseInstance(ExtensionContext context) {
-    return ofNullable(getClassStore(context).get(STORE_CONFIGURATION, TestflightConfiguration.class))
+    return ofNullable(getConfiguration(context))
         .map(TestflightConfiguration::getDatabaseInstanceScope)
         .orElse(PER_TEST_METHOD);
   }
 
-  enum StartupType {
-    SLOW, FAST;
+  enum ImageType {
+    DEFAULT, TAGGED;
   }
 }
