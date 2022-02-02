@@ -12,7 +12,7 @@ Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be st
     <dependency>
       <groupId>space.testflight</groupId>
       <artifactId>testflight</artifactId>
-      <version>0.7.2</version>
+      <version>0.8.0</version>
     </dependency>
 ```
 
