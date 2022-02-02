@@ -32,7 +32,6 @@ import org.flywaydb.core.api.configuration.Configuration;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.core.api.migration.JavaMigration;
 import org.flywaydb.core.api.resource.LoadableResource;
-import org.flywaydb.core.internal.database.mysql.MySQLParser;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLParser;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 import org.flywaydb.core.internal.parser.Parser;
@@ -44,6 +43,7 @@ import org.flywaydb.core.internal.scanner.ResourceNameCache;
 import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
 import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
+import org.flywaydb.database.mysql.MySQLParser;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 public class FlywayConfiguration extends TestflightConfiguration {
@@ -115,7 +115,7 @@ public class FlywayConfiguration extends TestflightConfiguration {
         parser = new PostgreSQLParser(flywayConfiguration, parsingContext);
         break;
       case MYSQL:
-        parser = new MySQLParser(flywayConfiguration, parsingContext);
+        parser = new MySqlParserFactory().createParser(flywayConfiguration, parsingContext);
         break;
       default:
         throw new IllegalStateException("Unsupported database type " + getDatabaseType());
@@ -140,6 +140,12 @@ public class FlywayConfiguration extends TestflightConfiguration {
       } else {
         throw new IllegalStateException("Unsupported test data location " + scriptLocation);
       }
+    }
+  }
+
+  private static class MySqlParserFactory {
+    public Parser createParser(Configuration configuration, ParsingContext context) {
+      return new MySQLParser(configuration, context);
     }
   }
 }
