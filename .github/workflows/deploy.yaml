@@ -45,9 +45,12 @@ jobs:
         uses: s4u/maven-settings-action@v2.2.0
         with:
           servers: '[{"id": "ossrh", "username": "${OSSRH_USERNAME}", "password": "${OSSRH_PASSWORD}"}]'
-      - id: maven-build
+      - id: build-flyway7
+        name: Build with Maven and Flyway 7
+        run: mvn clean verify -P flyway7,!flyway8
+      - id: build
         name: Build with Maven
-        run: mvn clean package jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        run: mvn clean verify jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

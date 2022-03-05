@@ -33,7 +33,7 @@ public class DatabaseContainerFactory {
   private static final Map<DatabaseType, String> DATABASE_CONTAINER_CLASS_NAMES;
 
   static {
-    EnumMap<DatabaseType, String> databaseContainerClassNames = new EnumMap<DatabaseType, String>(DatabaseType.class);
+    EnumMap<DatabaseType, String> databaseContainerClassNames = new EnumMap<>(DatabaseType.class);
     databaseContainerClassNames.put(DatabaseType.POSTGRESQL, "space.testflight.InContainerDataPostgreSqlContainer");
     databaseContainerClassNames.put(DatabaseType.MYSQL, "space.testflight.InContainerDataMySqlContainer");
     DATABASE_CONTAINER_CLASS_NAMES = unmodifiableMap(databaseContainerClassNames);

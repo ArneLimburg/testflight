@@ -40,9 +40,13 @@ public class ConnectionHandler implements InvocationHandler {
   }
 
   private Connection getConnection() throws SQLException {
-    if (connection == null || connection.isClosed() || !connection.isValid(1)) {
+    if (connection == null || !isConnectionOpen()) {
       connection = DriverManager.getConnection(jdbcUrl, jdbcUsername, jdbcPassword);
     }
     return connection;
+  }
+
+  private boolean isConnectionOpen() throws SQLException {
+    return !connection.isClosed() && connection.isValid(1);
   }
 }

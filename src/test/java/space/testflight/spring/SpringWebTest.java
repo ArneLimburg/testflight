@@ -39,7 +39,7 @@ import space.testflight.model.Customer;
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "spring.datasource.password")
 })
 @SpringBootTest(webEnvironment = RANDOM_PORT)
-public class SpringWebTest {
+class SpringWebTest {
   @LocalServerPort
   private int port;
 
@@ -47,7 +47,7 @@ public class SpringWebTest {
   private TestRestTemplate restTemplate;
 
   @Test
-  public void getAll() {
+  void getAll() {
     List<Customer> result = restTemplate.exchange(
       "http://localhost:" + port + "/customers",
       HttpMethod.GET,

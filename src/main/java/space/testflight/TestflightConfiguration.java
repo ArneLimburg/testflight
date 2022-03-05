@@ -40,7 +40,7 @@ public abstract class TestflightConfiguration {
   private final List<String> testDataScripts;
   private final Map<String, String> properties;
 
-  public TestflightConfiguration(
+  protected TestflightConfiguration(
     DatabaseType databaseType,
     String dockerImage,
     DatabaseInstanceScope databaseInstanceScope,

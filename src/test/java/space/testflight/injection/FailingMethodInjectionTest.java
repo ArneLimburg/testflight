@@ -36,7 +36,7 @@ import space.testflight.TestResource;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class FailingMethodInjectionTest {
+class FailingMethodInjectionTest {
 
   @Test
   void urlIsInjected(@TestResource Object jdbcUrl) {

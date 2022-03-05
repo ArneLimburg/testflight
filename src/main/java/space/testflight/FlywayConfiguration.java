@@ -43,7 +43,6 @@ import org.flywaydb.core.internal.scanner.ResourceNameCache;
 import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
 import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
-import org.flywaydb.database.mysql.MySQLParser;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
 public class FlywayConfiguration extends TestflightConfiguration {
@@ -80,7 +79,7 @@ public class FlywayConfiguration extends TestflightConfiguration {
     FileSystemScanner fileSystemScanner = new FileSystemScanner(configuration.getEncoding(), false, false, false);
     for (Location location : locations) {
       if (location.isClassPath()) {
-        ClassPathScanner<JavaMigration> scanner = new ClassPathScanner<JavaMigration>(
+        ClassPathScanner<JavaMigration> scanner = new ClassPathScanner<>(
           JavaMigration.class,
           configuration.getClassLoader(),
           configuration.getEncoding(),
@@ -97,7 +96,7 @@ public class FlywayConfiguration extends TestflightConfiguration {
     }
 
     Optional<LoadableResource> latestMigration = migrations.stream().sorted(Comparator.reverseOrder()).findFirst();
-    return latestMigration.map(p -> p.getFilename().toString().split("__")[0].replace(".", "_"));
+    return latestMigration.map(p -> p.getFilename().split("__")[0].replace(".", "_"));
   }
 
   public void applyToDatabase(
@@ -144,8 +143,27 @@ public class FlywayConfiguration extends TestflightConfiguration {
   }
 
   private static class MySqlParserFactory {
+    private static final Class<? extends Parser> MYSQL_PARSER_CLASS;
+    static {
+      Class<? extends Parser> mysqlParserClass = null;
+      try {
+        mysqlParserClass = (Class)Class.forName("org.flywaydb.database.mysql.MySQLParser");
+      } catch (ClassNotFoundException | NoClassDefFoundError classNotFound) {
+        try {
+          mysqlParserClass = (Class)Class.forName("org.flywaydb.core.internal.database.mysql.MySQLParser");
+        } catch (ClassNotFoundException e) {
+          throw new IllegalStateException("Please ensure, that org.flywaydb:flyway-mysql is in the classpath when using MySQL.");
+        }
+      }
+      MYSQL_PARSER_CLASS = mysqlParserClass;
+    }
+
     public Parser createParser(Configuration configuration, ParsingContext context) {
-      return new MySQLParser(configuration, context);
+      try {
+        return MYSQL_PARSER_CLASS.getConstructor(Configuration.class, ParsingContext.class).newInstance(configuration, context);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException("This version of flyway is not supported", e);
+      }
     }
   }
 }

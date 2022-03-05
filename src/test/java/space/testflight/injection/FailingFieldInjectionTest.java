@@ -36,7 +36,7 @@ import space.testflight.TestResource;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class FailingFieldInjectionTest {
+class FailingFieldInjectionTest {
 
   @TestResource
   private String connection;

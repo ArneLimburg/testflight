@@ -54,7 +54,7 @@ import space.testflight.model.Customer;
 @DataSet(value = "dbrider/customers.yml", strategy = SeedStrategy.INSERT)
 @DBUnit(schema = "public", caseInsensitiveStrategy = Orthography.LOWERCASE)
 @DBRider
-public class DbRiderTest {
+class DbRiderTest {
 
   private static EntityManagerFactory entityManagerFactory;
 

@@ -50,7 +50,7 @@ import space.testflight.model.Customer;
   }
 )
 @TestMethodOrder(MethodOrderer.Alphanumeric.class)
-public class PerTestMethodTest {
+class PerTestMethodTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
