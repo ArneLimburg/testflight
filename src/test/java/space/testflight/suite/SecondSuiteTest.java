@@ -40,7 +40,7 @@ import space.testflight.model.Customer;
 
 @Tag("suite")
 @Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_SUITE)
-public class SecondSuiteTest {
+class SecondSuiteTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

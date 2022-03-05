@@ -38,7 +38,7 @@ import space.testflight.model.Customer;
 
 @Tag("suite")
 @Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_SUITE)
-public class FirstSuiteTest {
+class FirstSuiteTest {
 
   private static boolean hansInserted = false;
   private static EntityManagerFactory entityManagerFactory;

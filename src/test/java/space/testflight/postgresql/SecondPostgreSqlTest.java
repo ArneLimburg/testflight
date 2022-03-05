@@ -36,7 +36,7 @@ import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
 @Flyway(database = DatabaseType.POSTGRESQL, testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"})
-public class SecondPostgreSqlTest {
+class SecondPostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

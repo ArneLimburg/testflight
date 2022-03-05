@@ -54,6 +54,7 @@
 
     <jupiter.version>5.6.2</jupiter.version>
     <testcontainers.version>1.16.2</testcontainers.version>
+    <flyway.version>8.4.3</flyway.version>
 
     <sonar.projectKey>ArneLimburg_testflight</sonar.projectKey>
     <sonar.organization>arnelimburg-github</sonar.organization>
@@ -78,12 +79,7 @@
       <dependency>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-core</artifactId>
-        <version>8.4.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-mysql</artifactId>
-        <version>8.4.3</version>
+        <version>${flyway.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -95,7 +91,7 @@
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.2.25</version>
+        <version>42.3.3</version>
       </dependency>
       <dependency>
         <groupId>com.github.database-rider</groupId>
@@ -123,11 +119,6 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-mysql</artifactId>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
@@ -423,17 +414,17 @@
                     <limit>
                       <counter>BRANCH</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.90</minimum>
+                      <minimum>0.95</minimum>
                     </limit>
                     <limit>
                       <counter>COMPLEXITY</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.90</minimum>
+                      <minimum>0.95</minimum>
                     </limit>
                     <limit>
                       <counter>METHOD</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.95</minimum>
+                      <minimum>1.00</minimum>
                     </limit>
                     <limit>
                       <counter>CLASS</counter>
@@ -450,6 +441,26 @@
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>flyway8</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.flywaydb</groupId>
+          <artifactId>flyway-mysql</artifactId>
+          <version>${flyway.version}</version>
+          <optional>true</optional>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>flyway7</id>
+      <properties>
+        <flyway.version>7.15.0</flyway.version>
+      </properties>
+    </profile>
     <profile>
       <id>release</id>
       <build>

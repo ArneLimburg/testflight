@@ -36,7 +36,7 @@ import space.testflight.FlywayExtension;
 import space.testflight.model.Customer;
 
 @ExtendWith(FlywayExtension.class)
-public class DefaultDatabaseTest {
+class DefaultDatabaseTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

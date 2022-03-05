@@ -19,6 +19,8 @@ import static java.util.Optional.ofNullable;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 import static space.testflight.DatabaseInstanceScope.PER_TEST_METHOD;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -68,42 +70,42 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     initialize(context);
 
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_CLASS) {
-      startDatabase(context, false);
+      startDatabase(context);
     }
   }
 
   @Override
   public void beforeEach(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_METHOD) {
-      startDatabase(context, true);
+      startDatabase(context);
     }
   }
 
   @Override
   public void beforeTestExecution(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_EXECUTION) {
-      startDatabase(context, true);
+      startDatabase(context);
     }
   }
 
   @Override
   public void afterTestExecution(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_EXECUTION) {
-      teardownDatabase(context, true);
+      teardownDatabase(context);
     }
   }
 
   @Override
   public void afterEach(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_METHOD) {
-      teardownDatabase(context, true);
+      teardownDatabase(context);
     }
   }
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
     if (getDatabaseInstance(context) == DatabaseInstanceScope.PER_TEST_CLASS) {
-      teardownDatabase(context, false);
+      teardownDatabase(context);
     }
 
     TestflightConfiguration configuration = getConfiguration(context);
@@ -134,7 +136,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     }
   }
 
-  private void startDatabase(ExtensionContext context, boolean useMethodLevelStore) {
+  private void startDatabase(ExtensionContext context) {
 
     Store containerStore = getContainerStore(context, getConfiguration(context).getDatabaseInstanceScope());
     String tagName = getMigrationTagName(context);
@@ -147,12 +149,13 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     containerStore.put(tagName, container);
   }
 
-  private void teardownDatabase(ExtensionContext context, boolean useMethodLevelStore) throws Exception {
+  private void teardownDatabase(ExtensionContext context) throws Exception {
     Store containerStore = getContainerStore(context, getConfiguration(context).getDatabaseInstanceScope());
     containerStore.get(getMigrationTagName(context), AutoCloseable.class).close();
   }
 
-  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context) throws Exception {
+  private <C extends JdbcDatabaseContainer<C> & TaggableContainer> void initialize(ExtensionContext context)
+      throws IOException, SQLException, URISyntaxException {
     TestflightConfiguration configuration = new FlywayConfiguration(findAnnotation(context.getTestClass(), Flyway.class));
     Optional<String> currentMigrationTarget = configuration.getCurrentMigrationTarget();
     int testDataTagSuffix = configuration.getTestDataTagSuffix();
@@ -183,10 +186,8 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     containerStore.put(JDBC_PORT, container.getMappedPort(container.getContainerPort()));
     containerStore.put(tagName, container);
     setSystemProperties(configuration, containerStore);
-    if (configuration.getDatabaseInstanceScope() == DatabaseInstanceScope.PER_TEST_SUITE) {
-      if (previous == null) {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> container.stop()));
-      }
+    if (configuration.getDatabaseInstanceScope() == DatabaseInstanceScope.PER_TEST_SUITE && previous == null) {
+      Runtime.getRuntime().addShutdownHook(new Thread(container::stop));
     }
   }
 

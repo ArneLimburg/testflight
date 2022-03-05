@@ -36,6 +36,7 @@ import space.testflight.model.Customer;
 
 @Flyway(
   database = DatabaseType.POSTGRESQL,
+  dockerImage = "postgres",
   testDataScripts = {
     "filesystem:src/test/resources/db/second-testdata/second-init.sql",
     "filesystem:src/test/resources/db/second-testdata/initTwo.sql"
@@ -47,7 +48,7 @@ import space.testflight.model.Customer;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class FlywayConfigurationTest {
+class FlywayConfigurationTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

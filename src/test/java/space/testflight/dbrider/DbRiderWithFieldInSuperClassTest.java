@@ -52,7 +52,7 @@ import space.testflight.model.Customer;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class DbRiderWithFieldInSuperClassTest extends AbstractDbRiderEnabledTest {
+class DbRiderWithFieldInSuperClassTest extends AbstractDbRiderEnabledTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

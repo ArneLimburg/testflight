@@ -43,7 +43,7 @@ import space.testflight.model.Customer;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class PostgreSqlTest {
+class PostgreSqlTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;

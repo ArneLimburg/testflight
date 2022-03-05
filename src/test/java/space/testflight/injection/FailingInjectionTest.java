@@ -29,7 +29,7 @@ import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 
-public class FailingInjectionTest {
+class FailingInjectionTest {
 
   @Test
   void fieldInjectionIsFailingForWrongFieldName() throws Exception {

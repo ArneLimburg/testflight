@@ -35,7 +35,7 @@ import space.testflight.Flyway;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-public class ConnectionFieldWithoutAnnotationTest {
+class ConnectionFieldWithoutAnnotationTest {
 
   private Connection connection;  // field is missing TestResource and is ignored
 

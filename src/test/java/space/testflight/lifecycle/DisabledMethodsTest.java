@@ -27,10 +27,10 @@ import space.testflight.DatabaseInstanceScope;
 import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 
-public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
+class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
 
   @Test
-  public void executeTestsWithDisabledTestClass() {
+  void executeTestsWithDisabledTestClass() {
     assertThatNoException().isThrownBy(() -> {
       EngineExecutionResults results = executeTestsForClasses(
         TestClassWithOnlyDisabledTestMethodsTestCase.class,
@@ -53,7 +53,7 @@ public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
       @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
     }
   )
-  public static class TestClassWithOnlyDisabledTestMethodsTestCase {
+  static class TestClassWithOnlyDisabledTestMethodsTestCase {
     @Test
     @Disabled
     public void testMethodDisabled() { }
@@ -68,7 +68,7 @@ public class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
       @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
     }
   )
-  public static class TestClassWithNonDisabledTestMethodsTestCase {
+  static class TestClassWithNonDisabledTestMethodsTestCase {
     @Test
     public void testMethodNonDisabled() { }
   }
