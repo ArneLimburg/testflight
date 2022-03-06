@@ -63,7 +63,13 @@ public abstract class TestflightConfiguration {
   }
 
   public String getDockerImage(String tagName) {
-    return getDockerImage() + ":" + tagName;
+    return getDockerImageName() + ":" + tagName;
+  }
+
+  private String getDockerImageName() {
+    String fullImage = getDockerImage();
+    int index = fullImage.indexOf(':');
+    return index < 0 ? fullImage : fullImage.substring(0, index);
   }
 
   public DatabaseInstanceScope getDatabaseInstanceScope() {
