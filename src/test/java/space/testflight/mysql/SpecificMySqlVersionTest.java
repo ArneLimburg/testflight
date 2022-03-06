@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.flyway;
+package space.testflight.mysql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -35,27 +37,26 @@ import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
 @Flyway(
-  database = DatabaseType.POSTGRESQL,
-  dockerImage = "postgres:14.2",
-  testDataScripts = {
-    "filesystem:src/test/resources/db/second-testdata/second-init.sql",
-    "filesystem:src/test/resources/db/second-testdata/initTwo.sql"
-  },
+  database = DatabaseType.MYSQL,
+  dockerImage = "mysql:8.0.28",
+  testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
   configuration = {
-    @ConfigProperty(key = "flyway.locations", value = "filesystem:src/test/resources/db/second-migration"),
+    @ConfigProperty(key = "flyway.locations", value = "db/mysql"),
     @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
     @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-class FlywayConfigurationTest {
+class SpecificMySqlVersionTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
 
   @BeforeAll
   static void createEntityManagerFactory() {
-    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", System.getProperties());
+    Map<Object, Object> properties = new HashMap<>(System.getProperties());
+    properties.put("javax.persistence.jdbc.driver", "com.mysql.cj.jdbc.Driver");
+    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
   }
 
   @AfterAll
@@ -83,11 +84,9 @@ class FlywayConfigurationTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
+    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
       .contains("Hans")
-      .contains("Second Admin") // in flyway script
-      .contains("second-tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+      .contains("Admin"); // in flyway script
   }
 
   @Test
@@ -100,10 +99,8 @@ class FlywayConfigurationTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
+    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
       .contains("Peter")
-      .contains("Second Admin") // in flyway script
-      .contains("second-tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+      .contains("Admin"); // in flyway script
   }
 }

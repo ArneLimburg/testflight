@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package space.testflight.flyway;
+package space.testflight.postgresql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -29,33 +31,22 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import space.testflight.ConfigProperty;
-import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
-@Flyway(
-  database = DatabaseType.POSTGRESQL,
-  dockerImage = "postgres:14.2",
-  testDataScripts = {
-    "filesystem:src/test/resources/db/second-testdata/second-init.sql",
-    "filesystem:src/test/resources/db/second-testdata/initTwo.sql"
-  },
-  configuration = {
-    @ConfigProperty(key = "flyway.locations", value = "filesystem:src/test/resources/db/second-migration"),
-    @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "javax.persistence.jdbc.url"),
-    @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "javax.persistence.jdbc.user"),
-    @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
-  }
-)
-class FlywayConfigurationTest {
+@Flyway(dockerImage = "postgres:12.10")
+class SpecificPostgresqlVersionTest {
 
   private static EntityManagerFactory entityManagerFactory;
   private EntityManager entityManager;
 
   @BeforeAll
   static void createEntityManagerFactory() {
-    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", System.getProperties());
+    Map<String, String> properties = new HashMap<>();
+    properties.put("javax.persistence.jdbc.url", System.getProperty("space.testflight.jdbc.url"));
+    properties.put("javax.persistence.jdbc.user", System.getProperty("space.testflight.jdbc.username"));
+    properties.put("javax.persistence.jdbc.password", System.getProperty("space.testflight.jdbc.password"));
+    entityManagerFactory = Persistence.createEntityManagerFactory("test-unit", properties);
   }
 
   @AfterAll
@@ -83,11 +74,8 @@ class FlywayConfigurationTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Hans")
-      .contains("Second Admin") // in flyway script
-      .contains("second-tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+    assertThat(customers).hasSize(4)
+            .extracting(Customer::getUserName).containsExactlyInAnyOrder("Hans", "Admin", "Admin2", "Admin3"); // admins in flyway script
   }
 
   @Test
@@ -100,10 +88,7 @@ class FlywayConfigurationTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(6).extracting(Customer::getUserName)
-      .contains("Peter")
-      .contains("Second Admin") // in flyway script
-      .contains("second-tesdataUser") // in init script
-      .contains("tesdataUser2"); // in second init script
+    assertThat(customers).hasSize(4)
+            .extracting(Customer::getUserName).containsExactlyInAnyOrder("Peter", "Admin", "Admin2", "Admin3"); // admins in flyway script
   }
 }
