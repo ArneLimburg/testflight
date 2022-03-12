@@ -18,12 +18,16 @@ package space.testflight;
 import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.Ports;
+
 public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InContainerDataPostgreSqlContainer>
   implements DefaultTaggableContainer<InContainerDataPostgreSqlContainer> {
 
   public InContainerDataPostgreSqlContainer(String dockerImage) {
     super(dockerImage);
     withEnv("PGDATA", "/var/lib/postgresql/data-local");
+    withExposedPorts(getContainerPort());
     exposeContainerPort();
   }
 
@@ -44,31 +48,10 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
 
   private void exposeContainerPort() {
     withCreateContainerCmdModifier(cmd -> {
-//      List<ExposedPort> exposedPorts = new ArrayList<>();
-//      ExposedPort containerPort = null;
-//      for (ExposedPort p : cmd.getExposedPorts()) {
-//        exposedPorts.add(p);
-//        if (p.getPort() == getContainerPort()) {
-//          containerPort = p;
-//        }
-//      }
-//      if (containerPort == null) {
-//        containerPort = ExposedPort.tcp(getContainerPort());
-//        exposedPorts.add(containerPort);
-//      }
-//      cmd.withExposedPorts(exposedPorts);
-
-//      Ports ports = cmd.getHostConfig().getPortBindings();
-//      ExposedPort exposedContainerPort = ExposedPort.tcp(getContainerPort());
-//      Binding[] bindings = ports.getBindings().get(exposedContainerPort);
-//      String hostIp = null;
-//      for (Binding binding: bindings) {
-//        hostIp = binding.getHostIp();
-//      }
-//      if (hostIp == null) {
-//        ports.bind(exposedContainerPort, Ports.Binding.empty());
-//        cmd.getHostConfig().withPortBindings(ports);
-//      }
+      Ports ports = cmd.getHostConfig().getPortBindings();
+      ExposedPort exposedContainerPort = ExposedPort.tcp(getContainerPort());
+      ports.bind(exposedContainerPort, Ports.Binding.empty());
+      cmd.getHostConfig().withPortBindings(ports);
     });
   }
 }

@@ -28,7 +28,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - id: build-flyway7
         name: Build with Maven and Flyway 7
-        run: mvn clean verify -P flyway7,!flyway8
+        run: mvn clean verify -Dtest=\!DbRiderTest* -P flyway7,!flyway8
       - id: build
         name: Build with Maven
-        run: mvn verify
+        run: mvn verify -Dtest=\!DbRiderTest*
