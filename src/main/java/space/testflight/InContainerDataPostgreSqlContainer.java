@@ -24,6 +24,7 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
   public InContainerDataPostgreSqlContainer(String dockerImage) {
     super(dockerImage);
     withEnv("PGDATA", "/var/lib/postgresql/data-local");
+    exposeContainerPort();
   }
 
   @Override
@@ -39,5 +40,35 @@ public class InContainerDataPostgreSqlContainer extends PostgreSQLContainer<InCo
   @Override
   public void addFixedPort(int hostPort, int containerPort) {
     super.addFixedExposedPort(hostPort, containerPort, InternetProtocol.TCP);
+  }
+
+  private void exposeContainerPort() {
+    withCreateContainerCmdModifier(cmd -> {
+//      List<ExposedPort> exposedPorts = new ArrayList<>();
+//      ExposedPort containerPort = null;
+//      for (ExposedPort p : cmd.getExposedPorts()) {
+//        exposedPorts.add(p);
+//        if (p.getPort() == getContainerPort()) {
+//          containerPort = p;
+//        }
+//      }
+//      if (containerPort == null) {
+//        containerPort = ExposedPort.tcp(getContainerPort());
+//        exposedPorts.add(containerPort);
+//      }
+//      cmd.withExposedPorts(exposedPorts);
+
+//      Ports ports = cmd.getHostConfig().getPortBindings();
+//      ExposedPort exposedContainerPort = ExposedPort.tcp(getContainerPort());
+//      Binding[] bindings = ports.getBindings().get(exposedContainerPort);
+//      String hostIp = null;
+//      for (Binding binding: bindings) {
+//        hostIp = binding.getHostIp();
+//      }
+//      if (hostIp == null) {
+//        ports.bind(exposedContainerPort, Ports.Binding.empty());
+//        cmd.getHostConfig().withPortBindings(ports);
+//      }
+    });
   }
 }
