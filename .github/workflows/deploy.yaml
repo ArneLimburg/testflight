@@ -47,10 +47,10 @@ jobs:
           servers: '[{"id": "ossrh", "username": "${OSSRH_USERNAME}", "password": "${OSSRH_PASSWORD}"}]'
       - id: build-flyway7
         name: Build with Maven and Flyway 7
-        run: mvn clean verify -D\!DbRiderTest* -P flyway7,!flyway8
+        run: mvn clean verify -P flyway7,!flyway8
       - id: build
         name: Build with Maven
-        run: mvn clean verify -Dtest=\!DbRiderTest* jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        run: mvn clean verify jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -59,7 +59,7 @@ jobs:
         name: Release
         run: |
           mvn -B release:prepare
-          mvn release:perform -Dtest=\!DbRiderTest* -DreleaseProfiles=release,flyway8 -Darguments=-Dgpg.passphrase=$GPG_PASSPHRASE
+          mvn -B release:perform -DreleaseProfiles=release,flyway8 -Darguments=-Dgpg.passphrase=$GPG_PASSPHRASE
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}

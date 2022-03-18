@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.github.database.rider.core.api.configuration.DBUnit;
@@ -42,6 +43,7 @@ import space.testflight.Flyway;
 import space.testflight.TestResource;
 import space.testflight.model.Customer;
 
+@Disabled("ConnectionHolder injection currently does not work with scope PER_TEST_METHOD")
 @Flyway(
   database = DatabaseType.POSTGRESQL,
   databaseInstance = DatabaseInstanceScope.PER_TEST_METHOD,
