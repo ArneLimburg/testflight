@@ -47,7 +47,7 @@ jobs:
           servers: '[{"id": "ossrh", "username": "${OSSRH_USERNAME}", "password": "${OSSRH_PASSWORD}"}]'
       - id: build-flyway7
         name: Build with Maven and Flyway 7
-        run: mvn clean verify -D\!DbRiderTest* -P flyway7,!flyway8
+        run: mvn clean verify -Dtest=\!DbRiderTest* -P flyway7,!flyway8
       - id: build
         name: Build with Maven
         run: mvn clean verify -Dtest=\!DbRiderTest* jacoco:report org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
