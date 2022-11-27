@@ -251,6 +251,7 @@ public class FlywayExtension implements BeforeAllCallback, BeforeEachCallback, B
     } else {
       Flyway flywayConfiguration = configuration.get();
       container = containerFactory.createDatabaseContainer(context, flywayConfiguration.database(), imageType);
+      container.withReuse(flywayConfiguration.reuse());
     }
     Store containerStore = getContainerStore(context, configuration.map(Flyway::databaseInstance).orElse(PER_TEST_METHOD));
     Optional.ofNullable(containerStore.get(JDBC_PORT, Integer.class))

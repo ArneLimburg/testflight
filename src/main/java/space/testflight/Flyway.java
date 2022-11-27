@@ -33,4 +33,5 @@ public @interface Flyway {
   DatabaseInstanceScope databaseInstance() default DatabaseInstanceScope.PER_TEST_METHOD;
   String[] testDataScripts() default {};
   ConfigProperty[] configuration() default {};
+  boolean reuse() default false;
 }
