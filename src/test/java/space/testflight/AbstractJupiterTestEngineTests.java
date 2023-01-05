@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package space.testflight.lifecycle;
+package space.testflight;
 
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;

@@ -16,6 +16,7 @@
 package space.testflight;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Optional.ofNullable;
 import static space.testflight.DatabaseInstanceScope.PER_TEST_METHOD;
 import static space.testflight.DatabaseType.POSTGRESQL;
 
@@ -42,6 +43,7 @@ import org.flywaydb.core.internal.scanner.LocationScannerCache;
 import org.flywaydb.core.internal.scanner.ResourceNameCache;
 import org.flywaydb.core.internal.scanner.classpath.ClassPathScanner;
 import org.flywaydb.core.internal.scanner.filesystem.FileSystemScanner;
+import org.flywaydb.core.internal.sqlscript.SqlStatement;
 import org.flywaydb.core.internal.sqlscript.SqlStatementIterator;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 
@@ -121,8 +123,13 @@ public class FlywayConfiguration extends TestflightConfiguration {
     }
 
     for (LoadableResource testDataScript : testDataScriptResources) {
-      SqlStatementIterator parse = parser.parse(testDataScript);
-      parse.forEachRemaining(p -> p.execute(jdbcTemplate));
+      for (SqlStatementIterator i = parser.parse(testDataScript); i.hasNext();) {
+        SqlStatement statement = i.next();
+        Optional<SQLException> result = ofNullable(statement.execute(jdbcTemplate).getException());
+        if (result.isPresent()) {
+          throw result.get();
+        }
+      }
     }
   }
 

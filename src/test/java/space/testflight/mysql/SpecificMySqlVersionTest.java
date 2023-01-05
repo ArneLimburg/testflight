@@ -84,9 +84,11 @@ class SpecificMySqlVersionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
-      .contains("Hans")
-      .contains("Admin"); // in flyway script
+    assertThat(customers).hasSize(4).extracting(Customer::getUserName)
+    .contains("Hans")
+    .contains("Admin") // in flyway script
+    .contains("tesdataUser") // in init.sql
+    .contains("tesdataUser2"); // in initTwo.sql
   }
 
   @Test
@@ -99,8 +101,10 @@ class SpecificMySqlVersionTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
-      .contains("Peter")
-      .contains("Admin"); // in flyway script
+    assertThat(customers).hasSize(4).extracting(Customer::getUserName)
+    .contains("Peter")
+    .contains("Admin") // in flyway script
+    .contains("tesdataUser") // in init.sql
+    .contains("tesdataUser2"); // in initTwo.sql
   }
 }

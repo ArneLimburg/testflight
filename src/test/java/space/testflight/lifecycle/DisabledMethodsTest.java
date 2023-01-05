@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 
+import space.testflight.AbstractJupiterTestEngineTests;
 import space.testflight.ConfigProperty;
 import space.testflight.DatabaseInstanceScope;
 import space.testflight.DatabaseType;
