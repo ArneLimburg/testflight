@@ -16,6 +16,7 @@
 package space.testflight.mysql;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static space.testflight.DatabaseType.MYSQL;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,12 +33,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import space.testflight.ConfigProperty;
-import space.testflight.DatabaseType;
 import space.testflight.Flyway;
 import space.testflight.model.Customer;
 
 @Flyway(
-  database = DatabaseType.MYSQL,
+  database = MYSQL,
   testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
   configuration = {
     @ConfigProperty(key = "flyway.locations", value = "db/mysql"),
@@ -83,9 +83,11 @@ class MySqlTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
+    assertThat(customers).hasSize(4).extracting(Customer::getUserName)
       .contains("Hans")
-      .contains("Admin"); // in flyway script
+      .contains("Admin") // in flyway script
+      .contains("tesdataUser") // in init.sql
+      .contains("tesdataUser2"); // in initTwo.sql
   }
 
   @Test
@@ -98,8 +100,10 @@ class MySqlTest {
 
     List<Customer> customers = entityManager.createQuery("Select u from Customer u", Customer.class).getResultList();
 
-    assertThat(customers).hasSize(2).extracting(Customer::getUserName)
+    assertThat(customers).hasSize(4).extracting(Customer::getUserName)
       .contains("Peter")
-      .contains("Admin"); // in flyway script
+      .contains("Admin") // in flyway script
+      .contains("tesdataUser") // in init.sql
+      .contains("tesdataUser2"); // in initTwo.sql
   }
 }
