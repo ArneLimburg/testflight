@@ -5,7 +5,7 @@
 
   <groupId>space.testflight</groupId>
   <artifactId>testflight</artifactId>
-  <version>0.8.7</version>
+  <version>0.8.8-SNAPSHOT</version>
 
   <name>Testflight.Space</name>
   <url>http://www.testflight.space</url>
@@ -23,7 +23,7 @@
     <url>https://github.com/ArneLimburg/testflight</url>
     <connection>scm:git:git://github.com/ArneLimburg/testflight.git</connection>
     <developerConnection>scm:git:https://github.com/ArneLimburg/testflight.git</developerConnection>
-    <tag>0.8.7</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <developers>
