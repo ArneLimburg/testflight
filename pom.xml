@@ -5,7 +5,7 @@
 
   <groupId>space.testflight</groupId>
   <artifactId>testflight</artifactId>
-  <version>0.8.9-SNAPSHOT</version>
+  <version>0.9.1-SNAPSHOT</version>
 
   <name>Testflight.Space</name>
   <url>http://www.testflight.space</url>
@@ -55,6 +55,7 @@
     <jupiter.version>5.6.2</jupiter.version>
     <testcontainers.version>1.17.6</testcontainers.version>
     <flyway.version>9.15.2</flyway.version>
+    <liquibase.version>4.18.0</liquibase.version>
 
     <sonar.projectKey>ArneLimburg_testflight</sonar.projectKey>
     <sonar.organization>arnelimburg-github</sonar.organization>
@@ -75,6 +76,11 @@
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-core</artifactId>
         <version>${flyway.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.liquibase</groupId>
+        <artifactId>liquibase-core</artifactId>
+        <version>${liquibase.version}</version>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -110,6 +116,11 @@
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>

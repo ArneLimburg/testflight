@@ -2,9 +2,9 @@
 
 # Testflight.Space
 
-Testflight.Space is a JUnit 5 extension for flyway to mandate fast database tests with real databases and real flyway migrations.
+Testflight.Space is a JUnit 5 extension for flyway and liquibase to mandate fast database tests with real databases and real flyway or liquibase migrations.
 
-Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be started for every of your tests.
+Simply annotate your JUnit 5 test with `@Flyway` or `@Liquibase` and a fresh database will be started for every of your tests.
 
 ## Maven Coordinates
 
@@ -12,7 +12,7 @@ Simply annotate your JUnit 5 test with `@Flyway` and a fresh database will be st
     <dependency>
       <groupId>space.testflight</groupId>
       <artifactId>testflight</artifactId>
-      <version>0.8.7</version>
+      <version>0.9.1</version>
     </dependency>
 ```
 
@@ -25,6 +25,11 @@ This may be interesting, when a method will be executed multiple times (i.e. for
 ```
 @Flyway(databaseInstance = DatabaseInstanceScope.PER_TEST_EXECUTION)
 ```
+or
+
+```
+@Liquibase(databaseInstance = DatabaseInstanceScope.PER_TEST_EXECUTION)
+```
 
 Or you can use `DatabaseInstanceScope.PER_TEST_CLASS` when you just want to start it once per test class,
 or even `DatabaseInstanceScope.PER_TEST_SUITE` for running the same instance for all tests.
@@ -36,6 +41,17 @@ You can add custom Flyway configuration via the annotation like
 ```
 @Flyway(configuration = {
   @ConfigProperty(key = "flyway.locations", value = "..."),
+  ...
+})
+```
+
+## Configuration of Liquibase
+
+You can add custom Liquibase configuration via the annotation like
+
+```
+@Liquibase(configuration = {
+  @ConfigProperty(key = "liquibase.changelogFile", value = "..."),
   ...
 })
 ```
@@ -68,7 +84,7 @@ EntityManagerFactory emf = Persistence.createEntityManager(..., persistencePrope
 You can change the system property names via:
 
 ```
-@Flyway(configuration = {
+@Flyway(configuration = { // or @Liquibase(configuration = {
   @ConfigProperty(key = "space.testflight.jdbc.url.property", value = "spring.datasource.url"),
   @ConfigProperty(key = "space.testflight.jdbc.username.property", value = "spring.datasource.username"),
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "spring.datasource.password")
@@ -95,11 +111,12 @@ Flyway extension internally uses Testcontainers to start databases so every data
 ## Initial test data
 
 In addition to the automatic flyway migration, you can specify database scripts that are executed after the migration.
-Simply configure them via `@Flyway(testDataScripts = {...})`.
+Simply configure them via `@Flyway(testDataScripts = {...})` or `@Liquibase(testDataScripts = {...})`.
 
 ## Using a custom docker image
 
-If you want to use a custom docker image for your database, specify it via `@Flyway(dockerImage = "")`.
+If you want to use a custom docker image for your database, specify it via `@Flyway(dockerImage = "")`
+or `@Liquibase(dockerImage = "")`.
 
 ## Integration with other test frameworks
 
@@ -116,7 +133,7 @@ You can ensure that by declaring the ``FlywayExtension`` **before** the respecti
 
 ```
 @ExtendWith({ FlywayExtension.class, QuarkusTestExtension.class })
-@Flyway(...)
+@Flyway(...) // or @Liquibase(...)
 @QuarkusTest
 class DatabaseTest {
     ...
@@ -174,7 +191,7 @@ So you may use Database Rider by simply adding the following to your maven pom:
 </dependency>
 ```
 
-After that, please ensure, that the `@Flyway` extension is ordered before the `@DBRider` extension
+After that, please ensure, that the `@Flyway` or `@Liquibase` extension is ordered before the `@DBRider` extension
 (see [JUnit 5 extension ordering](#junit-5-extension-ordering)).
 Providing the Testflight.Space database connection to DBRider
 is as easy as adding a field of type `com.github.database.rider.core.api.connection.ConnectionHolder`with name `connectionHolder`

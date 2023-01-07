@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<databaseChangeLog  
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"  
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"  
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.18.xsd
+      http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.18.xsd"
+  objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">  
+    <changeSet author="testflight" id="1185214997195-1">  
+        <createTable tableName="ids">  
+            <column name="id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>  
+            <column name="value" type="int8">
+                <constraints nullable="false"/>
+            </column>  
+        </createTable>  
+        <createTable tableName="Customer">  
+            <column name="id" type="int8">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>  
+            <column name="email" type="VARCHAR2(255)"/>  
+            <column name="userName" type="VARCHAR2(255)"/>  
+        </createTable>
+        <insert tableName="Customer">
+            <column name="id" value="1"/>
+            <column name="email" value="admin@mail.de"/>
+            <column name="userName" value="Admin"/>
+        </insert>
+        <insert tableName="ids">
+            <column name="id" value="customer_id"/>
+            <column name="value" value="2"/>
+        </insert>
+    </changeSet>
+    <changeSet author="testflight" id="1185214997195-2">  
+        <insert tableName="Customer">
+            <column name="id" valueComputed="(select value from ids where id = 'customer_id')"/>
+            <column name="email" value="admin2@mail.de"/>
+            <column name="userName" value="Admin2"/>
+        </insert>
+        <update tableName="ids">
+            <column name="value" valueComputed="(select value + 1 from ids where id = 'customer_id')"/>
+            <where>id = 'customer_id'</where>
+        </update>
+    </changeSet>
+    <changeSet author="testflight" id="1185214997195-3">  
+        <insert tableName="Customer">
+            <column name="id" valueComputed="(select value from ids where id = 'customer_id')"/>
+            <column name="email" value="admin3@mail.de"/>
+            <column name="userName" value="Admin3"/>
+        </insert>
+        <update tableName="ids">
+            <column name="value" valueComputed="(select value + 1 from ids where id = 'customer_id')"/>
+            <where>id = 'customer_id'</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

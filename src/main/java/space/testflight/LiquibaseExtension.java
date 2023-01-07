@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 - 2023 Arne Limburg
+ * Copyright 2023 Arne Limburg
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,28 +20,28 @@ import static space.testflight.DatabaseInstanceScope.PER_TEST_METHOD;
 
 import java.util.Optional;
 
-public class FlywayExtension extends AbstractDatabaseMigrationExtension {
+public class LiquibaseExtension extends AbstractDatabaseMigrationExtension {
 
   @Override
   protected TestflightConfiguration createConfiguration(Optional<Class<?>> testClass) {
-    return new FlywayConfiguration(findAnnotation(testClass, Flyway.class));
+    return new LiquibaseConfiguration(findAnnotation(testClass, Liquibase.class));
   }
 
   @Override
   protected DatabaseInstanceScope getDatabaseInstance(Optional<Class<?>> testClass) {
-    Optional<Flyway> configuration = findAnnotation(testClass, Flyway.class);
-    return configuration.map(Flyway::databaseInstance).orElse(PER_TEST_METHOD);
+    Optional<Liquibase> configuration = findAnnotation(testClass, Liquibase.class);
+    return configuration.map(Liquibase::databaseInstance).orElse(PER_TEST_METHOD);
   }
 
   @Override
   protected boolean getReuse(Optional<Class<?>> testClass) {
-    Optional<Flyway> configuration = findAnnotation(testClass, Flyway.class);
-    return configuration.map(Flyway::reuse).orElse(false);
+    Optional<Liquibase> configuration = findAnnotation(testClass, Liquibase.class);
+    return configuration.map(Liquibase::reuse).orElse(false);
   }
 
   @Override
   protected Optional<DatabaseType> getDatabaseType(Optional<Class<?>> testClass) {
-    Optional<Flyway> configuration = findAnnotation(testClass, Flyway.class);
-    return configuration.map(Flyway::database);
+    Optional<Liquibase> configuration = findAnnotation(testClass, Liquibase.class);
+    return configuration.map(Liquibase::database);
   }
 }
