@@ -16,12 +16,14 @@
 package space.testflight.spring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.NONE;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
@@ -39,6 +41,7 @@ import space.testflight.model.Customer;
   @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "spring.datasource.password")
 })
 @SpringBootTest(webEnvironment = RANDOM_PORT)
+@AutoConfigureTestDatabase(replace = NONE)
 class SpringWebTest {
   @LocalServerPort
   private int port;

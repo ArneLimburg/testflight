@@ -26,7 +26,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
-import space.testflight.FlywayExtension.ImageType;
+import space.testflight.AbstractDatabaseMigrationExtension.ImageType;
 
 public class DatabaseContainerFactory {
 
