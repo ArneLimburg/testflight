@@ -16,11 +16,11 @@
 package space.testflight.testdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.junit.platform.engine.TestExecutionResult.Status.FAILED;
 
 import java.util.Optional;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -33,7 +33,7 @@ class InvalidTestdataTest extends AbstractJupiterTestEngineTests {
 
   @Test
   void executeTestsWithInvalidTestdata() {
-    Assertions.assertThatNoException().isThrownBy(() -> {
+    assertThatNoException().isThrownBy(() -> {
       EngineExecutionResults results = executeTestsForClasses(
         TestWithInvalidTestdata.class
       );
@@ -59,6 +59,8 @@ class InvalidTestdataTest extends AbstractJupiterTestEngineTests {
   )
   static class TestWithInvalidTestdata {
     @Test
-    public void testMethodDisabled() { }
+    public void testMethodDisabled() {
+      assertThat(false).isTrue();
+    }
   }
 }

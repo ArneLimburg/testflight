@@ -17,6 +17,7 @@ package space.testflight.lifecycle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -56,8 +57,10 @@ class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
   )
   static class TestClassWithOnlyDisabledTestMethodsTestCase {
     @Test
-    @Disabled
-    public void testMethodDisabled() { }
+    @Disabled("test, if testflight works with only disabled test cases")
+    void testMethodDisabled() {
+      assertTrue(false);
+    }
   }
 
   @Flyway(
@@ -71,6 +74,8 @@ class DisabledMethodsTest extends AbstractJupiterTestEngineTests {
   )
   static class TestClassWithNonDisabledTestMethodsTestCase {
     @Test
-    public void testMethodNonDisabled() { }
+    void testMethodNonDisabled() {
+      assertTrue(true);
+    }
   }
 }

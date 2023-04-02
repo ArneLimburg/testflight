@@ -46,7 +46,7 @@ public class DatabaseContainerFactory {
     if (imageType == ImageType.TAGGED) {
       container.setWaitStrategy(Wait.forLogMessage(databaseType.getStartupLogMessage(), 1));
     }
-    return (C)container;
+    return container;
   }
 
   private String getImageName(ExtensionContext context, ImageType imageType) {

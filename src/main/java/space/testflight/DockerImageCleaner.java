@@ -16,6 +16,7 @@
 package space.testflight;
 
 import static java.util.Optional.ofNullable;
+import static space.testflight.AbstractDatabaseMigrationExtension.TESTFLIGHT_PREFIX;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,7 +54,7 @@ public class DockerImageCleaner {
   Predicate<Image> byTestflightPrefix() {
     return image -> ofNullable(image.getRepoTags())
             .map(Arrays::stream)
-            .map(tags -> tags.anyMatch(tag -> tag.contains(":" + FlywayExtension.TESTFLIGHT_PREFIX)))
+            .map(tags -> tags.anyMatch(tag -> tag.contains(":" + TESTFLIGHT_PREFIX)))
             .orElse(false);
   }
 }

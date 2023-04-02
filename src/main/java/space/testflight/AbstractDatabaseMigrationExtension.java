@@ -271,7 +271,7 @@ public abstract class AbstractDatabaseMigrationExtension implements BeforeAllCal
       .exec();
 
     return imageList.stream()
-      .map(i -> i.getRepoTags())
+      .map(Image::getRepoTags)
       .filter(Objects::nonNull)
       .flatMap(Arrays::stream)
       .anyMatch(t -> t.equals(imageName));

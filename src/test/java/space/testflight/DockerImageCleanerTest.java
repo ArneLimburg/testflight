@@ -35,7 +35,7 @@ import com.github.dockerjava.api.command.ListImagesCmd;
 import com.github.dockerjava.api.model.Image;
 
 @Tag("clean")
-public class DockerImageCleanerTest {
+class DockerImageCleanerTest {
 
   private static DockerClient client;
 
