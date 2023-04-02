@@ -17,7 +17,7 @@ package space.testflight;
 
 import org.testcontainers.containers.Container;
 
-public interface DefaultTaggableContainer<SELF extends DefaultTaggableContainer<SELF>> extends TaggableContainer, Container<SELF> {
+public interface DefaultTaggableContainer<S extends DefaultTaggableContainer<S>> extends TaggableContainer, Container<S> {
 
   String getDefaultImageName();
 

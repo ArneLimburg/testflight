@@ -3,7 +3,7 @@ name: build pull requests and branches
 on:
   push:
     branches-ignore:
-      - master
+      - main
   pull_request:
 
 jobs:

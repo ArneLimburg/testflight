@@ -10,7 +10,8 @@
   <name>Testflight.Space</name>
   <url>http://www.testflight.space</url>
   <description>
-    A JUnit 5 extension to write fast database tests with flyway and testcontainers.
+    A JUnit 5 extension to write fast database tests with testcontainers 
+and flyway or liquibase.
   </description>
   <licenses>
     <license>

@@ -35,7 +35,7 @@ import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 import org.junit.platform.testkit.engine.EngineTestKit;
 
-public class AbstractJupiterTestEngineTests {
+public abstract class AbstractJupiterTestEngineTests {
   private final JupiterTestEngine engine = new JupiterTestEngine();
 
   protected EngineExecutionResults executeTestsForClasses(Class<?>... testClasses) {

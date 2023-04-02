@@ -85,25 +85,32 @@ public class LiquibaseConfiguration extends TestflightConfiguration {
     }
   }
 
-  public void applyToDatabase(
-    JdbcDatabaseContainer<?> container) throws SQLException {
+  public void applyToDatabase(JdbcDatabaseContainer<?> container) throws SQLException {
     try {
-      try (JdbcConnection connection = new JdbcConnection()) {
-        Properties jdbcProperties = new Properties();
-        jdbcProperties.put("user", container.getUsername());
-        jdbcProperties.put("password", container.getPassword());
-        connection.open(container.getJdbcUrl(), container.getJdbcDriverInstance(), jdbcProperties);
-        ResourceAccessor resourceAccessor = new ClassLoaderResourceAccessor(Thread.currentThread().getContextClassLoader());
-        try (liquibase.Liquibase liquibase = new liquibase.Liquibase(changeLogFile, resourceAccessor, connection)) {
-          liquibase.update();
-          for (SQLFileChange change : sqlFileChanges) {
-            liquibase.getDatabase().executeStatements(change, liquibase.getDatabaseChangeLog(), emptyList());
-          }
-        } catch (LiquibaseException e) {
-          throw new SQLException(e);
-        }
-      }
+      applyWithLiquibase(container);
     } catch (DatabaseException e) {
+      throw new SQLException(e);
+    }
+  }
+
+  private void applyWithLiquibase(JdbcDatabaseContainer<?> container) throws DatabaseException, SQLException {
+    try (JdbcConnection connection = new JdbcConnection()) {
+      Properties jdbcProperties = new Properties();
+      jdbcProperties.put("user", container.getUsername());
+      jdbcProperties.put("password", container.getPassword());
+      connection.open(container.getJdbcUrl(), container.getJdbcDriverInstance(), jdbcProperties);
+      ResourceAccessor resourceAccessor = new ClassLoaderResourceAccessor(Thread.currentThread().getContextClassLoader());
+      updateAndApplyTestdata(connection, resourceAccessor);
+    }
+  }
+
+  private void updateAndApplyTestdata(JdbcConnection connection, ResourceAccessor resourceAccessor) throws SQLException {
+    try (liquibase.Liquibase liquibase = new liquibase.Liquibase(changeLogFile, resourceAccessor, connection)) {
+      liquibase.update();
+      for (SQLFileChange change : sqlFileChanges) {
+        liquibase.getDatabase().executeStatements(change, liquibase.getDatabaseChangeLog(), emptyList());
+      }
+    } catch (LiquibaseException e) {
       throw new SQLException(e);
     }
   }
