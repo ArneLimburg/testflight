@@ -12,7 +12,7 @@ Simply annotate your JUnit 5 test with `@Flyway` or `@Liquibase` and a fresh dat
     <dependency>
       <groupId>space.testflight</groupId>
       <artifactId>testflight</artifactId>
-      <version>0.9.1</version>
+      <version>0.9.2</version>
     </dependency>
 ```
 
