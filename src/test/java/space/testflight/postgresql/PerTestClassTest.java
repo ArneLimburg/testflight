@@ -47,7 +47,7 @@ import space.testflight.model.Customer;
     @ConfigProperty(key = "space.testflight.jdbc.password.property", value = "javax.persistence.jdbc.password")
   }
 )
-@TestMethodOrder(MethodOrderer.Alphanumeric.class)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 class PerTestClassTest {
 
   private static EntityManagerFactory entityManagerFactory;

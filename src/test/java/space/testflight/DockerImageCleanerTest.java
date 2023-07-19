@@ -46,7 +46,7 @@ class DockerImageCleanerTest {
 
   @BeforeEach
   void tagImage() {
-    try (PostgreSQLContainer<?> postgreSqlContainer = new PostgreSQLContainer<>()) {
+    try (PostgreSQLContainer<?> postgreSqlContainer = new PostgreSQLContainer<>("postgres:15.2")) {
       postgreSqlContainer.start();
       String commitedImage = client.commitCmd(postgreSqlContainer.getContainerId()).exec();
       client.tagImageCmd(commitedImage, PostgreSQLContainer.IMAGE, TESTFLIGHT_PREFIX + hashCode()).exec();

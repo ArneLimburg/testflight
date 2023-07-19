@@ -38,7 +38,7 @@ import space.testflight.model.Customer;
 
 @Flyway(
   database = DatabaseType.MYSQL,
-  dockerImage = "mysql:8.0.28",
+  dockerImage = "mysql:8.0.33",
   testDataScripts = {"db/testdata/init.sql", "db/testdata/initTwo.sql"},
   configuration = {
     @ConfigProperty(key = "flyway.locations", value = "db/mysql"),
