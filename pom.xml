@@ -93,7 +93,7 @@ and flyway or liquibase.
       <dependency>
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
-        <version>42.3.8</version>
+        <version>42.7.2</version>
       </dependency>
       <dependency>
         <groupId>com.github.database-rider</groupId>
